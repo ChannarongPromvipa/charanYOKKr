@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Firestore CRUD Example</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, button { margin: 5px; }
+    ul { list-style: none; padding: 0; }
+    li { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<h2>Firebase Firestore CRUD Example</h2>
+
+<!-- Form เพิ่มข้อมูล -->
+<input type="text" id="name" placeholder="Name">
+<input type="email" id="email" placeholder="Email">
+<button onclick="addUser()">Add User</button>
+
+<h3>Users</h3>
+<ul id="userList"></ul>
+
+<script>
+  // 🔹 ใส่ Firebase config ของคุณเองตรงนี้
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-app.firebaseapp.com",
+    projectId: "your-app",
+    storageBucket: "your-app.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abcd1234"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // 🔹 เพิ่มข้อมูล
+  function addUser() {
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+
+    if (!name || !email) return alert("กรอกข้อมูลให้ครบ");
+
+    db.collection("users").add({
+      name: name,
+      email: email,
+      createdAt: new Date()
+    }).then(() => {
+      document.getElementById("name").value = "";
+      document.getElementById("email").value = "";
+      console.log("เพิ่มข้อมูลสำเร็จ!");
+    }).catch(err => console.error(err));
+  }
+
+  // 🔹 อ่านข้อมูลแบบ Real-time
+  db.collection("users").orderBy("createdAt").onSnapshot(snapshot => {
+    const userList = document.getElementById("userList");
+    userList.innerHTML = "";
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const li = document.createElement("li");
+      li.innerHTML = `
+        ${data.name} (${data.email})
+        <button onclick="editUser('${doc.id}', '${data.name}', '${data.email}')">Edit</button>
+        <button onclick="deleteUser('${doc.id}')">Delete</button>
+      `;
+      userList.appendChild(li);
+    });
+  });
+
+  // 🔹 แก้ไขข้อมูล
+  function editUser(id, oldName, oldEmail) {
+    const name = prompt("แก้ไขชื่อ:", oldName);
+    const email = prompt("แก้ไขอีเมล:", oldEmail);
+    if (!name || !email) return;
+
+    db.collection("users").doc(id).update({
+      name: name,
+      email: email
+    }).then(() => console.log("แก้ไขข้อมูลสำเร็จ"))
+      .catch(err => console.error(err));
+  }
+
+  // 🔹 ลบข้อมูล
+  function deleteUser(id) {
+    if (confirm("ลบผู้ใช้นี้จริงหรือไม่?")) {
+      db.collection("users").doc(id).delete()
+        .then(() => console.log("ลบข้อมูลสำเร็จ"))
+        .catch(err => console.error(err));
+    }
+  }
+</script>
+
+</body>
+</html>
