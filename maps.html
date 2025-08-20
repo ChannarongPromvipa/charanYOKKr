@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Map — Thailand</title>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    /* Reset บางส่วนและจัดวางเต็มจอ */
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color: #111827;
+      background: #f8fafc;
+    }
+    header {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 {
+      font-size: 16px;
+      margin: 0;
+      font-weight: 700;
+    }
+    header .btn {
+      appearance: none;
+      border: 0;
+      background: #111827;
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    header .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* กล่องข้อมูล */
+    .panel {
+      position: fixed;
+      right: 12px;
+      top: 12px;
+      z-index: 1000;
+      width: min(340px, 90vw);
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.08);
+      padding: 12px;
+    }
+    .panel h2 { font-size: 14px; margin: 0 0 8px 0; }
+    .panel label { display: block; font-size: 12px; color: #374151; margin: 6px 0 2px; }
+    .panel input {
+      width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid #e5e7eb;
+    }
+    .panel .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .panel .mini { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+    /* พื้นที่แผนที่ */
+    #map { height: 100%; width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Thailand Map</h1>
+    <button id="locateBtn" class="btn" title="หาตำแหน่งของฉัน">📍 Locate me</button>
+    <button id="resetBtn" class="btn" title="ซูมกลับกรุงเทพ">🔄 Reset</button>
+  </header>
+
+  <aside class="panel">
+    <h2>เพิ่มหมุดอย่างรวดเร็ว</h2>
+    <div class="row">
+      <div>
+        <label>ชื่อสถานที่</label>
+        <input id="placeName" placeholder="เช่น บ้าน/ออฟฟิศ/ร้านกาแฟ" />
+      </div>
+      <div>
+        <label>คำอธิบาย</label>
+        <input id="placeDesc" placeholder="รายละเอียดสั้น ๆ" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Latitude</label>
+        <input id="latInput" placeholder="13.7563" />
+      </div>
+      <div>
+        <label>Longitude</label>
+        <input id="lngInput" placeholder="100.5018" />
+      </div>
+    </div>
+    <p class="mini">คลิกบนแผนที่เพื่อเติมค่า lat/lng อัตโนมัติ แล้วกด Enter ในช่องใดช่องหนึ่งเพื่อเพิ่มหมุด</p>
+  </aside>
+
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // ตั้งค่าพื้นฐาน
+    const DEFAULT_CENTER = [13.736717, 100.523186]; // กรุงเทพฯ
+    const DEFAULT_ZOOM = 12;
+
+    // สร้างแผนที่
+    const map = L.map('map').setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
+    // เลเยอร์แผนที่ (ฟรี ไม่มี API key)
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // สเกล
+    L.control.scale().addTo(map);
+
+    // ตัวอย่างหมุดเริ่มต้น
+    const places = [
+      { name: 'วัดพระแก้ว', desc: 'Grand Palace Area', lat: 13.7515, lng: 100.4927 },
+      { name: 'ไอคอนสยาม', desc: 'ICONSIAM', lat: 13.7261, lng: 100.5108 },
+      { name: 'สยามพารากอน', desc: 'Siam Paragon', lat: 13.7460, lng: 100.5346 },
+    ];
+
+    const markers = L.layerGroup().addTo(map);
+
+    function addMarker(p) {
+      const m = L.marker([p.lat, p.lng]).addTo(markers);
+      m.bindPopup(`<b>${p.name || 'จุดที่เลือก'}</b><br>${p.desc || ''}<br><small>${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</small>`);
+      return m;
+    }
+
+    // วาดหมุดตัวอย่าง
+    places.forEach(addMarker);
+
+    // คลิกบนแผนที่เพื่อเตรียมค่าพิกัด
+    const latInput = document.getElementById('latInput');
+    const lngInput = document.getElementById('lngInput');
+    const placeName = document.getElementById('placeName');
+    const placeDesc = document.getElementById('placeDesc');
+
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      latInput.value = lat.toFixed(6);
+      lngInput.value = lng.toFixed(6);
+    });
+
+    function tryAddFromInputs() {
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      addMarker({
+        lat, lng,
+        name: placeName.value.trim(),
+        desc: placeDesc.value.trim(),
+      }).openPopup();
+      // เคลียร์เฉพาะชื่อ/คำอธิบาย
+      placeName.value = '';
+      placeDesc.value = '';
+    }
+
+    latInput.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') tryAddFromInputs();
+    });
+    lngInput.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') tryAddFromInputs();
+    });
+
+    // ปุ่มหาตำแหน่งปัจจุบัน
+    const locateBtn = document.getElementById('locateBtn');
+    locateBtn.addEventListener('click', () => {
+      locateBtn.disabled = true;
+      map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true });
+    });
+
+    map.on('locationfound', (e) => {
+      const radius = e.accuracy;
+      const here = L.marker(e.latlng).addTo(markers).bindPopup('คุณอยู่บริเวณนี้');
+      L.circle(e.latlng, radius).addTo(markers);
+      here.openPopup();
+      locateBtn.disabled = false;
+    });
+
+    map.on('locationerror', () => {
+      alert('ไม่สามารถเข้าถึงตำแหน่งได้ โปรดอนุญาตการใช้งาน Location ในเบราว์เซอร์');
+      locateBtn.disabled = false;
+    });
+
+    // ปุ่ม Reset กลับกรุงเทพ
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    });
+
+    // ตัวอย่าง GeoJSON (รูปทรงพื้นที่อย่างง่าย) — เขตพระนครโดยประมาณ (ตัวอย่าง ไม่แม่นยำ)
+    const samplePolygon = {
+      "type": "Feature",
+      "properties": { "name": "ตัวอย่างพื้นที่" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.488, 13.762],
+          [100.506, 13.762],
+          [100.506, 13.742],
+          [100.488, 13.742],
+          [100.488, 13.762]
+        ]]
+      }
+    };
+
+    L.geoJSON(samplePolygon, {
+      style: { color: '#2563eb', weight: 2, opacity: 0.8, fillOpacity: 0.05 }
+    }).addTo(map).bindPopup('โพลิกอนตัวอย่าง (ปรับแก้ได้)');
+  </script>
+</body>
+</html>
