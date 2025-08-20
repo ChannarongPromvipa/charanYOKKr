@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตารางหุ้น (HTML + CSS + JS)</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --muted: #7e8aa4;
+      --text: #e6ecf8;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --border: #1f2a44;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 600px at 10% -10%, #14203e, transparent), var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    .title { font-size: clamp(22px, 4vw, 32px); font-weight: 800; letter-spacing: .3px; margin: 0 0 16px; }
+    .subtitle { color: var(--muted); margin: 0 0 20px; }
+
+    .controls {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; margin-bottom: 14px;
+    }
+    @media (max-width: 640px) { .controls { grid-template-columns: 1fr; } }
+
+    .input, .btn, .select {
+      background: #0f1627; color: var(--text); border: 1px solid var(--border);
+      padding: 10px 12px; border-radius: 12px; outline: none; transition: border .15s, transform .06s;
+    }
+    .input:focus, .select:focus { border-color: var(--accent); }
+    .btn { cursor: pointer; font-weight: 600; }
+    .btn:hover { border-color: var(--accent); }
+    .btn:active { transform: translateY(1px); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0) 60%), var(--card);
+      border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      position: sticky; top: 0; background: #121a2b; z-index: 1;
+      font-size: 12px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted);
+      text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border);
+      user-select: none; cursor: pointer;
+    }
+    tbody td { padding: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+
+    .up { color: var(--green); }
+    .down { color: var(--red); }
+
+    .flex { display: flex; align-items: center; gap: 10px; }
+    .symbol { font-weight: 800; letter-spacing: .2px; }
+    .name { color: var(--muted); font-size: 12px; }
+
+    .footer { color: var(--muted); font-size: 12px; margin-top: 10px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#0f1627; border:1px solid var(--border); border-radius:999px; }
+    .remove { cursor: pointer; font-size: 12px; color: #9aa8c2; }
+    .remove:hover { color: #cbd5e1; }
+
+    .right { text-align: right; }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">ตารางหุ้น (Interactive Stock Table)</h1>
+    <p class="subtitle">ตัวอย่างตารางหุ้นด้วย HTML + CSS + JS: ค้นหา, เรียงลำดับ, บันทึกในเครื่อง, สปาร์คไลน์</p>
+
+    <div class="controls">
+      <input id="search" class="input" placeholder="ค้นหา: สัญลักษณ์ / ชื่อบริษัท" />
+      <button id="add" class="btn">+ เพิ่มหุ้น</button>
+      <button id="reset" class="btn">รีเซ็ตข้อมูล</button>
+    </div>
+
+    <div class="card">
+      <table id="stockTable" aria-label="ตารางหุ้น">
+        <thead>
+          <tr>
+            <th data-key="symbol" data-type="string">สัญลักษณ์</th>
+            <th data-key="name" data-type="string">บริษัท</th>
+            <th class="right" data-key="price" data-type="number">ราคา</th>
+            <th class="right" data-key="changePct" data-type="number">เปลี่ยนแปลง</th>
+            <th class="right" data-key="marketCap" data-type="number">มูลค่าบริษัท</th>
+            <th class="center" data-key="spark" data-type="none">สปาร์คไลน์</th>
+            <th class="center" data-key="actions" data-type="none">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <p class="footer">หมายเหตุ: ตัวอย่างนี้เป็นข้อมูลจำลอง (ไม่ดึงราคาจริง). คุณสามารถเพิ่ม/ลบหุ้น และข้อมูลจะถูกบันทึกในเครื่องด้วย <code>localStorage</code>.</p>
+  </div>
+
+  <script>
+    // --------------------------
+    // Utilities
+    // --------------------------
+    const fmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+    const fmt0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+    function marketCapString(n) {
+      if (n >= 1e12) return fmt2(n/1e12) + 'T';
+      if (n >= 1e9)  return fmt2(n/1e9) + 'B';
+      if (n >= 1e6)  return fmt2(n/1e6) + 'M';
+      return fmt0(n);
+    }
+    function fmt2(n){ return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
+
+    function randBetween(min, max) { return Math.random() * (max - min) + min; }
+
+    // --------------------------
+    // Sample / Persisted Data
+    // --------------------------
+    const STORAGE_KEY = 'stockTableDataV1';
+    function defaultData() {
+      return [
+        { symbol: 'AAPL', name: 'Apple Inc.', price: 228.35, changePct: +1.24, marketCap: 3_900_000_000_000, history: seedHistory(228.35) },
+        { symbol: 'MSFT', name: 'Microsoft Corp.', price: 440.12, changePct: -0.58, marketCap: 3_600_000_000_000, history: seedHistory(440.12) },
+        { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 122.78, changePct: +0.92, marketCap: 2_900_000_000_000, history: seedHistory(122.78) },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 187.65, changePct: +0.21, marketCap: 1_900_000_000_000, history: seedHistory(187.65) },
+        { symbol: 'TSLA', name: 'Tesla Inc.', price: 235.40, changePct: -2.11, marketCap: 750_000_000_000, history: seedHistory(235.40) },
+      ];
+    }
+
+    function seedHistory(start) {
+      const arr = []; let v = start;
+      for (let i=0;i<30;i++) { v = Math.max(1, v * (1 + randBetween(-0.02, 0.02))); arr.push(Number(v.toFixed(2))); }
+      return arr;
+    }
+
+    function loadData(){
+      try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return defaultData();
+        const data = JSON.parse(raw);
+        // Ensure history exists
+        for (const r of data) { if (!Array.isArray(r.history) || r.history.length === 0) r.history = seedHistory(r.price || 100); }
+        return data;
+      } catch { return defaultData(); }
+    }
+
+    function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+    let rows = loadData();
+    let sortState = { key: 'marketCap', dir: 'desc' };
+
+    // --------------------------
+    // Rendering
+    // --------------------------
+    const tbody = document.getElementById('tbody');
+    const table = document.getElementById('stockTable');
+
+    function render(){
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      let view = rows.filter(r => !q || r.symbol.toLowerCase().includes(q) || (r.name||'').toLowerCase().includes(q));
+
+      // sort
+      if (sortState.key && ['string','number'].includes(sortState.type)) {
+        view.sort((a,b) => {
+          const k = sortState.key; const dir = sortState.dir === 'asc' ? 1 : -1;
+          if (sortState.type === 'string') return String(a[k]).localeCompare(String(b[k])) * dir;
+          const av = Number(a[k] ?? 0), bv = Number(b[k] ?? 0); return (av - bv) * dir;
+        });
+      }
+
+      tbody.innerHTML = '';
+      for (const r of view) tbody.appendChild(rowEl(r));
+    }
+
+    function rowEl(r){
+      const tr = document.createElement('tr');
+
+      // symbol
+      const td0 = document.createElement('td');
+      td0.innerHTML = `<div class="flex"><span class="symbol">${r.symbol}</span><span class="badge">หุ้น</span></div>`;
+      tr.appendChild(td0);
+
+      // name
+      const td1 = document.createElement('td');
+      td1.innerHTML = `<span class="name">${r.name || '-'}</span>`;
+      tr.appendChild(td1);
+
+      // price
+      const td2 = document.createElement('td'); td2.className = 'right mono';
+      td2.textContent = fmt.format(r.price);
+      tr.appendChild(td2);
+
+      // change
+      const td3 = document.createElement('td'); td3.className = 'right mono';
+      const cls = r.changePct >= 0 ? 'up' : 'down';
+      td3.innerHTML = `<span class="${cls}">${r.changePct >= 0 ? '▲' : '▼'} ${fmt2(Math.abs(r.changePct))}%</span>`;
+      tr.appendChild(td3);
+
+      // market cap
+      const td4 = document.createElement('td'); td4.className = 'right mono';
+      td4.textContent = marketCapString(r.marketCap);
+      tr.appendChild(td4);
+
+      // sparkline
+      const td5 = document.createElement('td'); td5.className = 'center';
+      const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 30; canvas.style.width = '120px'; canvas.style.height = '30px';
+      drawSpark(canvas, r.history);
+      td5.appendChild(canvas);
+      tr.appendChild(td5);
+
+      // actions
+      const td6 = document.createElement('td'); td6.className = 'center';
+      const del = document.createElement('span'); del.className = 'remove'; del.textContent = 'ลบ';
+      del.addEventListener('click', () => { rows = rows.filter(x => x !== r); saveData(rows); render(); });
+      td6.appendChild(del);
+      tr.appendChild(td6);
+
+      return tr;
+    }
+
+    function drawSpark(canvas, arr){
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height, pad = 2;
+      ctx.clearRect(0,0,w,h);
+      const min = Math.min(...arr), max = Math.max(...arr);
+      const norm = v => (h - pad) - ( (v - min) / Math.max(1e-9,(max-min)) ) * (h - pad*2);
+      // line
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      arr.forEach((v,i)=>{
+        const x = pad + i*( (w - pad*2) / (arr.length-1) );
+        const y = norm(v);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      // color by last change
+      const up = arr[arr.length-1] >= arr[0];
+      ctx.strokeStyle = up ? '#22c55e' : '#ef4444';
+      ctx.stroke();
+      // last dot
+      ctx.beginPath();
+      const xLast = pad + (arr.length-1)*( (w - pad*2) / (arr.length-1) );
+      const yLast = norm(arr[arr.length-1]);
+      ctx.arc(xLast, yLast, 2.5, 0, Math.PI*2);
+      ctx.fillStyle = up ? '#22c55e' : '#ef4444';
+      ctx.fill();
+    }
+
+    // --------------------------
+    // Sorting interactions
+    // --------------------------
+    for (const th of table.tHead.rows[0].cells) {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key; const type = th.dataset.type;
+        if (type === 'none') return;
+        if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else { sortState.key = key; sortState.dir = 'asc'; }
+        sortState.type = type;
+        render();
+        updateSortIndicators();
+      });
+    }
+
+    function updateSortIndicators(){
+      for (const th of table.tHead.rows[0].cells) {
+        const key = th.dataset.key, type = th.dataset.type;
+        if (type === 'none') { th.innerHTML = th.textContent; continue; }
+        const label = th.textContent.split(' ')[0];
+        const is = sortState.key === key;
+        th.innerHTML = `${label} ${is ? (sortState.dir === 'asc' ? '↑' : '↓') : ''}`;
+      }
+    }
+
+    // --------------------------
+    // Controls
+    // --------------------------
+    document.getElementById('search').addEventListener('input', render);
+
+    document.getElementById('add').addEventListener('click', () => {
+      const symbol = prompt('สัญลักษณ์หุ้น (เช่น AAPL, PTTEP):');
+      if (!symbol) return;
+      const name = prompt('ชื่อบริษัท:') || '';
+      const price = Number(prompt('ราคา (ตัวเลข):') || '0');
+      const cap = Number(prompt('มูลค่าบริษัท (ตัวเลข, USD):') || '0');
+      const changePct = Number((randBetween(-2, 2)).toFixed(2));
+      const rec = { symbol: symbol.trim().toUpperCase(), name, price, changePct, marketCap: cap, history: seedHistory(price || 100) };
+      rows.push(rec); saveData(rows); render();
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      if (confirm('รีเซ็ตเป็นข้อมูลเริ่มต้น?')) { rows = defaultData(); saveData(rows); render(); }
+    });
+
+    // --------------------------
+    // Simulate live ticks (fake)
+    // --------------------------
+    setInterval(() => {
+      // Randomly nudge prices a bit, then re-render sparklines only.
+      let changed = false;
+      rows.forEach(r => {
+        const drift = randBetween(-0.6, 0.6);
+        const newPrice = Math.max(0.01, r.price * (1 + drift/100));
+        r.price = Number(newPrice.toFixed(2));
+        r.changePct = Number(drift.toFixed(2));
+        // update history
+        r.history.push(r.price); if (r.history.length > 30) r.history.shift();
+        changed = true;
+      });
+      if (!changed) return;
+      // Update table cells & canvases without full re-render (minor perf)
+      const trs = [...tbody.rows];
+      trs.forEach((tr, i) => {
+        const r = rows[i]; if (!r) return;
+        tr.cells[2].textContent = fmt.format(r.price);
+        tr.cells[3].innerHTML = `<span class="${r.changePct>=0?'up':'down'}">${r.changePct>=0?'▲':'▼'} ${fmt2(Math.abs(r.changePct))}%</span>`;
+        const canvas = tr.cells[5].querySelector('canvas');
+        if (canvas) drawSpark(canvas, r.history);
+      });
+      saveData(rows);
+    }, 2500);
+
+    // Initial
+    updateSortIndicators();
+    render();
+  </script>
+</body>
+</html>
