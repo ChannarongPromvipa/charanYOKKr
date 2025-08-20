@@ -208,20 +208,20 @@
     });
 
     // ตัวอย่าง GeoJSON (รูปทรงพื้นที่อย่างง่าย) — เขตพระนครโดยประมาณ (ตัวอย่าง ไม่แม่นยำ)
-    const samplePolygon = {
-      "type": "Feature",
-      "properties": { "name": "ตัวอย่างพื้นที่" },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [100.488, 13.762],
-          [100.506, 13.762],
-          [100.506, 13.742],
-          [100.488, 13.742],
-          [100.488, 13.762]
-        ]]
-      }
-    };
+ //   const samplePolygon = {
+   //   "type": "Feature",
+   //   "properties": { "name": "ตัวอย่างพื้นที่" },
+    //  "geometry": {
+     //   "type": "Polygon",
+      //  "coordinates": [[
+       //   [100.488, 13.762],
+       //   [100.506, 13.762],
+        //  [100.506, 13.742],
+         // [100.488, 13.742],
+        //  [100.488, 13.762]
+      //  ]]
+   //   }
+  //  };
 
     L.geoJSON(samplePolygon, {
       style: { color: '#2563eb', weight: 2, opacity: 0.8, fillOpacity: 0.05 }
