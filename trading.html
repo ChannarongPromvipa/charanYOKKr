@@ -92,6 +92,7 @@
             <th class="right" data-key="price" data-type="number">ราคา</th>
             <th class="right" data-key="changePct" data-type="number">เปลี่ยนแปลง</th>
             <th class="right" data-key="marketCap" data-type="number">มูลค่าบริษัท</th>
+            <th class="right" data-key="tenYearPct" data-type="number">10 ปี (%)</th>
             <th class="center" data-key="spark" data-type="none">สปาร์คไลน์</th>
             <th class="center" data-key="actions" data-type="none">จัดการ</th>
           </tr>
@@ -104,11 +105,9 @@
   </div>
 
   <script>
-    // --------------------------
-    // Utilities
-    // --------------------------
     const fmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
     const fmt0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+    function fmt2(n){ return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
 
     function marketCapString(n) {
       if (n >= 1e12) return fmt2(n/1e12) + 'T';
@@ -116,21 +115,16 @@
       if (n >= 1e6)  return fmt2(n/1e6) + 'M';
       return fmt0(n);
     }
-    function fmt2(n){ return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
-
     function randBetween(min, max) { return Math.random() * (max - min) + min; }
 
-    // --------------------------
-    // Sample / Persisted Data
-    // --------------------------
     const STORAGE_KEY = 'stockTableDataV1';
     function defaultData() {
       return [
-        { symbol: 'AAPL', name: 'Apple Inc.', price: 228.35, changePct: +1.24, marketCap: 3_900_000_000_000, history: seedHistory(228.35) },
-        { symbol: 'MSFT', name: 'Microsoft Corp.', price: 440.12, changePct: -0.58, marketCap: 3_600_000_000_000, history: seedHistory(440.12) },
-        { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 122.78, changePct: +0.92, marketCap: 2_900_000_000_000, history: seedHistory(122.78) },
-        { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 187.65, changePct: +0.21, marketCap: 1_900_000_000_000, history: seedHistory(187.65) },
-        { symbol: 'TSLA', name: 'Tesla Inc.', price: 235.40, changePct: -2.11, marketCap: 750_000_000_000, history: seedHistory(235.40) },
+        { symbol: 'AAPL', name: 'Apple Inc.', price: 228.35, changePct: +1.24, marketCap: 3_900_000_000_000, tenYearPct: 850, history: seedHistory(228.35) },
+        { symbol: 'MSFT', name: 'Microsoft Corp.', price: 440.12, changePct: -0.58, marketCap: 3_600_000_000_000, tenYearPct: 720, history: seedHistory(440.12) },
+        { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 122.78, changePct: +0.92, marketCap: 2_900_000_000_000, tenYearPct: 1500, history: seedHistory(122.78) },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 187.65, changePct: +0.21, marketCap: 1_900_000_000_000, tenYearPct: 560, history: seedHistory(187.65) },
+        { symbol: 'TSLA', name: 'Tesla Inc.', price: 235.40, changePct: -2.11, marketCap: 750_000_000_000, tenYearPct: 1100, history: seedHistory(235.40) },
       ];
     }
 
@@ -143,7 +137,6 @@
     function loadData(){
       try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return defaultData();
         const data = JSON.parse(raw);
-        // Ensure history exists
         for (const r of data) { if (!Array.isArray(r.history) || r.history.length === 0) r.history = seedHistory(r.price || 100); }
         return data;
       } catch { return defaultData(); }
@@ -154,9 +147,6 @@
     let rows = loadData();
     let sortState = { key: 'marketCap', dir: 'desc' };
 
-    // --------------------------
-    // Rendering
-    // --------------------------
     const tbody = document.getElementById('tbody');
     const table = document.getElementById('stockTable');
 
@@ -164,7 +154,6 @@
       const q = document.getElementById('search').value.trim().toLowerCase();
       let view = rows.filter(r => !q || r.symbol.toLowerCase().includes(q) || (r.name||'').toLowerCase().includes(q));
 
-      // sort
       if (sortState.key && ['string','number'].includes(sortState.type)) {
         view.sort((a,b) => {
           const k = sortState.key; const dir = sortState.dir === 'asc' ? 1 : -1;
@@ -179,46 +168,42 @@
 
     function rowEl(r){
       const tr = document.createElement('tr');
-
-      // symbol
       const td0 = document.createElement('td');
       td0.innerHTML = `<div class="flex"><span class="symbol">${r.symbol}</span><span class="badge">หุ้น</span></div>`;
       tr.appendChild(td0);
 
-      // name
       const td1 = document.createElement('td');
       td1.innerHTML = `<span class="name">${r.name || '-'}</span>`;
       tr.appendChild(td1);
 
-      // price
       const td2 = document.createElement('td'); td2.className = 'right mono';
       td2.textContent = fmt.format(r.price);
       tr.appendChild(td2);
 
-      // change
       const td3 = document.createElement('td'); td3.className = 'right mono';
       const cls = r.changePct >= 0 ? 'up' : 'down';
       td3.innerHTML = `<span class="${cls}">${r.changePct >= 0 ? '▲' : '▼'} ${fmt2(Math.abs(r.changePct))}%</span>`;
       tr.appendChild(td3);
 
-      // market cap
       const td4 = document.createElement('td'); td4.className = 'right mono';
       td4.textContent = marketCapString(r.marketCap);
       tr.appendChild(td4);
 
-      // sparkline
-      const td5 = document.createElement('td'); td5.className = 'center';
-      const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 30; canvas.style.width = '120px'; canvas.style.height = '30px';
-      drawSpark(canvas, r.history);
-      td5.appendChild(canvas);
+      const td5 = document.createElement('td'); td5.className = 'right mono';
+      td5.textContent = r.tenYearPct ? fmt2(r.tenYearPct) + '%' : '-';
       tr.appendChild(td5);
 
-      // actions
       const td6 = document.createElement('td'); td6.className = 'center';
+      const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 30; canvas.style.width = '120px'; canvas.style.height = '30px';
+      drawSpark(canvas, r.history);
+      td6.appendChild(canvas);
+      tr.appendChild(td6);
+
+      const td7 = document.createElement('td'); td7.className = 'center';
       const del = document.createElement('span'); del.className = 'remove'; del.textContent = 'ลบ';
       del.addEventListener('click', () => { rows = rows.filter(x => x !== r); saveData(rows); render(); });
-      td6.appendChild(del);
-      tr.appendChild(td6);
+      td7.appendChild(del);
+      tr.appendChild(td7);
 
       return tr;
     }
@@ -229,7 +214,6 @@
       ctx.clearRect(0,0,w,h);
       const min = Math.min(...arr), max = Math.max(...arr);
       const norm = v => (h - pad) - ( (v - min) / Math.max(1e-9,(max-min)) ) * (h - pad*2);
-      // line
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       arr.forEach((v,i)=>{
@@ -237,11 +221,9 @@
         const y = norm(v);
         if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       });
-      // color by last change
       const up = arr[arr.length-1] >= arr[0];
       ctx.strokeStyle = up ? '#22c55e' : '#ef4444';
       ctx.stroke();
-      // last dot
       ctx.beginPath();
       const xLast = pad + (arr.length-1)*( (w - pad*2) / (arr.length-1) );
       const yLast = norm(arr[arr.length-1]);
@@ -250,9 +232,6 @@
       ctx.fill();
     }
 
-    // --------------------------
-    // Sorting interactions
-    // --------------------------
     for (const th of table.tHead.rows[0].cells) {
       th.addEventListener('click', () => {
         const key = th.dataset.key; const type = th.dataset.type;
@@ -275,9 +254,6 @@
       }
     }
 
-    // --------------------------
-    // Controls
-    // --------------------------
     document.getElementById('search').addEventListener('input', render);
 
     document.getElementById('add').addEventListener('click', () => {
@@ -286,46 +262,11 @@
       const name = prompt('ชื่อบริษัท:') || '';
       const price = Number(prompt('ราคา (ตัวเลข):') || '0');
       const cap = Number(prompt('มูลค่าบริษัท (ตัวเลข, USD):') || '0');
+      const tenYearPct = Number(prompt('เปอร์เซ็นต์ 10 ปี (%) เช่น 500:') || '0');
       const changePct = Number((randBetween(-2, 2)).toFixed(2));
-      const rec = { symbol: symbol.trim().toUpperCase(), name, price, changePct, marketCap: cap, history: seedHistory(price || 100) };
+      const rec = { symbol: symbol.trim().toUpperCase(), name, price, changePct, marketCap: cap, tenYearPct, history: seedHistory(price || 100) };
       rows.push(rec); saveData(rows); render();
     });
 
     document.getElementById('reset').addEventListener('click', () => {
-      if (confirm('รีเซ็ตเป็นข้อมูลเริ่มต้น?')) { rows = defaultData(); saveData(rows); render(); }
-    });
-
-    // --------------------------
-    // Simulate live ticks (fake)
-    // --------------------------
-    setInterval(() => {
-      // Randomly nudge prices a bit, then re-render sparklines only.
-      let changed = false;
-      rows.forEach(r => {
-        const drift = randBetween(-0.6, 0.6);
-        const newPrice = Math.max(0.01, r.price * (1 + drift/100));
-        r.price = Number(newPrice.toFixed(2));
-        r.changePct = Number(drift.toFixed(2));
-        // update history
-        r.history.push(r.price); if (r.history.length > 30) r.history.shift();
-        changed = true;
-      });
-      if (!changed) return;
-      // Update table cells & canvases without full re-render (minor perf)
-      const trs = [...tbody.rows];
-      trs.forEach((tr, i) => {
-        const r = rows[i]; if (!r) return;
-        tr.cells[2].textContent = fmt.format(r.price);
-        tr.cells[3].innerHTML = `<span class="${r.changePct>=0?'up':'down'}">${r.changePct>=0?'▲':'▼'} ${fmt2(Math.abs(r.changePct))}%</span>`;
-        const canvas = tr.cells[5].querySelector('canvas');
-        if (canvas) drawSpark(canvas, r.history);
-      });
-      saveData(rows);
-    }, 2500);
-
-    // Initial
-    updateSortIndicators();
-    render();
-  </script>
-</body>
-</html>
+      if (confirm('รีเซ็ตเป็นข้อมูลเริ่มต้น?
