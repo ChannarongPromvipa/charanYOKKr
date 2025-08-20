@@ -6,6 +6,109 @@
 		<link rel="stylesheet" href="assets/css/main.css" />
 		<link rel="icon" type="image/png" href="images/house.png">
 	</head>
+	<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>บันทึกรายจ่าย</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      width: 400px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+    .item input {
+      width: 150px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .total, .remain {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 1.1em;
+      text-align: right;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #28a745;
+      color: white;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>บันทึกรายจ่าย</h2>
+
+    <div class="item"><label>รายรับ: </label><input type="number" id="income" placeholder="บาท"></div>
+    <div class="item"><label>ค่าบ้าน: </label><input type="number" id="house" value="0"></div>
+    <div class="item"><label>ค่างวดรถ: </label><input type="number" id="car" value="0"></div>
+    <div class="item"><label>ค่าไฟ: </label><input type="number" id="electric" value="0"></div>
+    <div class="item"><label>ค่าน้ำ: </label><input type="number" id="water" value="0"></div>
+    <div class="item"><label>ค่าบัตรเครดิต: </label><input type="number" id="credit" value="0"></div>
+    <div class="item"><label>ค่าเน็ต: </label><input type="number" id="internet" value="0"></div>
+    <div class="item"><label>ค่ากิน: </label><input type="number" id="food" value="0"></div>
+    <div class="item"><label>ลงทุน: </label><input type="number" id="invest" value="0"></div>
+
+    <button onclick="calculate()">คำนวณ</button>
+
+    <div class="total">รวมรายจ่าย: <span id="total">0</span> บาท</div>
+    <div class="remain">เงินเหลือ: <span id="remain">0</span> บาท</div>
+  </div>
+
+  <script>
+    function calculate() {
+      const income = parseFloat(document.getElementById("income").value) || 0;
+      const house = parseFloat(document.getElementById("house").value) || 0;
+      const car = parseFloat(document.getElementById("car").value) || 0;
+      const electric = parseFloat(document.getElementById("electric").value) || 0;
+      const water = parseFloat(document.getElementById("water").value) || 0;
+      const credit = parseFloat(document.getElementById("credit").value) || 0;
+      const internet = parseFloat(document.getElementById("internet").value) || 0;
+      const food = parseFloat(document.getElementById("food").value) || 0;
+      const invest = parseFloat(document.getElementById("invest").value) || 0;
+
+      const total = house + car + electric + water + credit + internet + food + invest;
+      const remain = income - total;
+
+      document.getElementById("total").textContent = total;
+      document.getElementById("remain").textContent = remain;
+    }
+  </script>
+
+</body>
+</html>
 
 	<body class="is-preload">
 
