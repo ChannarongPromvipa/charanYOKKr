@@ -89,6 +89,16 @@
       return diff >= 0 ? diff : '';
     }
 
+    function calcDays(buyDate) {
+    if (!buyDate) return "";
+    const today = new Date();
+    const start = new Date(buyDate);
+    // หาค่าต่างของวัน (มิลลิวินาที -> วัน)
+    const diffTime = today - start;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 ? diffDays : 0;
+    }
+    
     function render(){
       tbody.innerHTML = '';
       items.forEach(it => {
@@ -97,7 +107,7 @@
           <td>${it.stock}</td>
           <td>${it.name}</td>
           <td>${it.date}</td>
-          <td>${calcDays(it.date)}</td>
+          <td>${calcDays(item.buydate)}</td>
           <td>${it.port}</td>
           <td>${it.type}</td>
           <td>${it.price}</td>
