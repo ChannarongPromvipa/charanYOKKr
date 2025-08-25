@@ -81,22 +81,14 @@
 
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-    function calcDays(startDate){
-      if(!startDate) return '';
-      const start = new Date(startDate);
+     function calcDays(buyDate) {
+      if (!buyDate) return "";
       const today = new Date();
-      const diff = Math.floor((today - start) / (1000*60*60*24));
-      return diff >= 0 ? diff : '';
-    }
-
-    function calcDays(buyDate) {
-    if (!buyDate) return "";
-    const today = new Date();
-    const start = new Date(buyDate);
-    // หาค่าต่างของวัน (มิลลิวินาที -> วัน)
-    const diffTime = today - start;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 ? diffDays : 0;
+      const start = new Date(buyDate);
+      // หาค่าต่างของวัน (มิลลิวินาที -> วัน)
+      const diffTime = today - start;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 ? diffDays : 0;
     }
     
     function render(){
