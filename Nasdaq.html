@@ -81,16 +81,16 @@
 
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-     function calcDays(buyDate) {
+    function calcDays(buyDate) {
       if (!buyDate) return "";
-      const today = new Date();
-      const start = new Date(buyDate);
-      // หาค่าต่างของวัน (มิลลิวินาที -> วัน)
-      const diffTime = today - start;
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const s = new Date(buyDate);
+      const startUTC = Date.UTC(s.getFullYear(), s.getMonth(), s.getDate());
+      const t = new Date();
+      const todayUTC = Date.UTC(t.getFullYear(), t.getMonth(), t.getDate());
+      const diffDays = Math.floor((todayUTC - startUTC) / 86400000);
       return diffDays >= 0 ? diffDays : 0;
     }
-    
+
     function render(){
       tbody.innerHTML = '';
       items.forEach(it => {
@@ -99,7 +99,7 @@
           <td>${it.stock}</td>
           <td>${it.name}</td>
           <td>${it.date}</td>
-          <td>${calcDays(item.buydate)}</td>
+          <td>${calcDays(it.date)}</td>
           <td>${it.port}</td>
           <td>${it.type}</td>
           <td>${it.price}</td>
