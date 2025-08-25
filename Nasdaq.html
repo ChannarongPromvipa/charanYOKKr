@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ตารางข้อมูลหุ้น — เพิ่ม/แก้ไข/ลบ/ส่งออก Excel</title>
+  <style>
+    body {font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px;}
+    .header {display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
+    .header h1 {margin: 0;}
+    .btn {padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer;}
+    .btn.add {background: #22c55e; color: white;}
+    .btn.export {background: #f59e0b; color: white;}
+    table {width: 100%; border-collapse: collapse; margin-top: 10px;}
+    th, td {border: 1px solid #ddd; padding: 8px; text-align: left;}
+    th {background: #1e293b; color: white; cursor: pointer;}
+    tr:nth-child(even) {background: #f9fafb;}
+    .actions button {margin-right: 5px; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;}
+    .edit {background: #3b82f6; color: white;}
+    .delete {background: #ef4444; color: white;}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>ตารางข้อมูลหุ้น</h1>
+    <div>
+      <button id="addBtn" class="btn add">+ เพิ่มข้อมูล</button>
+      <button id="exportBtn" class="btn export">ส่งออก Excel</button>
+    </div>
+  </div>
+
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>หุ้น</th>
+        <th>ชื่อ</th>
+        <th>วันที่เข้าซื้อ</th>
+        <th>ถือกี่วัน</th>
+        <th>พอร์ต</th>
+        <th>ประเภท</th>
+        <th>ราคาหุ้น</th>
+        <th>การทำงาน</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไข -->
+  <dialog id="dlg">
+    <form method="dialog" id="form">
+      <h3 id="dlgTitle">เพิ่มข้อมูลหุ้น</h3>
+      <input type="hidden" id="id" />
+      <label>หุ้น: <input id="stock" required></label><br>
+      <label>ชื่อ: <input id="name" required></label><br>
+      <label>วันที่เข้าซื้อ: <input type="date" id="date" required></label><br>
+      <label>ถือกี่วัน: <input type="number" id="days" required></label><br>
+      <label>พอร์ต: <input id="port"></label><br>
+      <label>ประเภท: <input id="type"></label><br>
+      <label>ราคาหุ้น: <input type="number" id="price" required></label><br><br>
+      <menu>
+        <button type="reset">ยกเลิก</button>
+        <button id="saveBtn" type="submit">บันทึก</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const STORAGE_KEY = 'stock-table-v1';
+    const tbody = document.getElementById('tbody');
+    const dlg = document.getElementById('dlg');
+    const form = document.getElementById('form');
+    const dlgTitle = document.getElementById('dlgTitle');
+
+    const idEl = document.getElementById('id');
+    const stockEl = document.getElementById('stock');
+    const nameEl = document.getElementById('name');
+    const dateEl = document.getElementById('date');
+    const daysEl = document.getElementById('days');
+    const portEl = document.getElementById('port');
+    const typeEl = document.getElementById('type');
+    const priceEl = document.getElementById('price');
+
+    let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    function render(){
+      tbody.innerHTML = '';
+      items.forEach(it => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${it.stock}</td>
+          <td>${it.name}</td>
+          <td>${it.date}</td>
+          <td>${it.days}</td>
+          <td>${it.port}</td>
+          <td>${it.type}</td>
+          <td>${it.price}</td>
+          <td class="actions">
+            <button class="edit" onclick="editItem('${it.id}')">แก้ไข</button>
+            <button class="delete" onclick="deleteItem('${it.id}')">ลบ</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function uid(){ return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
+
+    document.getElementById('addBtn').onclick = () => {
+      form.reset();
+      idEl.value = '';
+      dlgTitle.textContent = 'เพิ่มข้อมูลหุ้น';
+      dlg.showModal();
+    };
+
+    form.onsubmit = e => {
+      e.preventDefault();
+      const payload = {
+        id: idEl.value || uid(),
+        stock: stockEl.value,
+        name: nameEl.value,
+        date: dateEl.value,
+        days: daysEl.value,
+        port: portEl.value,
+        type: typeEl.value,
+        price: priceEl.value
+      };
+      const idx = items.findIndex(x=>x.id===payload.id);
+      if(idx>=0) items[idx]=payload; else items.push(payload);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      dlg.close();
+      render();
+    };
+
+    window.editItem = id => {
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      idEl.value = it.id;
+      stockEl.value = it.stock;
+      nameEl.value = it.name;
+      dateEl.value = it.date;
+      daysEl.value = it.days;
+      portEl.value = it.port;
+      typeEl.value = it.type;
+      priceEl.value = it.price;
+      dlgTitle.textContent = 'แก้ไขข้อมูลหุ้น';
+      dlg.showModal();
+    };
+
+    window.deleteItem = id => {
+      if(confirm('ยืนยันการลบ?')){
+        items = items.filter(x=>x.id!==id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        render();
+      }
+    };
+
+    document.getElementById('exportBtn').onclick = () => {
+      const data = items.map(it => ({
+        'หุ้น': it.stock,
+        'ชื่อ': it.name,
+        'วันที่เข้าซื้อ': it.date,
+        'ถือกี่วัน': it.days,
+        'พอร์ต': it.port,
+        'ประเภท': it.type,
+        'ราคาหุ้น': it.price
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Stocks");
+      XLSX.writeFile(wb, "stocks.xlsx");
+    };
+
+    render();
+  </script>
+</body>
+</html>
