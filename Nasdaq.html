@@ -53,7 +53,6 @@
       <label>หุ้น: <input id="stock" required></label><br>
       <label>ชื่อ: <input id="name" required></label><br>
       <label>วันที่เข้าซื้อ: <input type="date" id="date" required></label><br>
-      <label>ถือกี่วัน: <input type="number" id="days" required></label><br>
       <label>พอร์ต: <input id="port"></label><br>
       <label>ประเภท: <input id="type"></label><br>
       <label>ราคาหุ้น: <input type="number" id="price" required></label><br><br>
@@ -76,12 +75,19 @@
     const stockEl = document.getElementById('stock');
     const nameEl = document.getElementById('name');
     const dateEl = document.getElementById('date');
-    const daysEl = document.getElementById('days');
     const portEl = document.getElementById('port');
     const typeEl = document.getElementById('type');
     const priceEl = document.getElementById('price');
 
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    function calcDays(startDate){
+      if(!startDate) return '';
+      const start = new Date(startDate);
+      const today = new Date();
+      const diff = Math.floor((today - start) / (1000*60*60*24));
+      return diff >= 0 ? diff : '';
+    }
 
     function render(){
       tbody.innerHTML = '';
@@ -91,7 +97,7 @@
           <td>${it.stock}</td>
           <td>${it.name}</td>
           <td>${it.date}</td>
-          <td>${it.days}</td>
+          <td>${calcDays(it.date)}</td>
           <td>${it.port}</td>
           <td>${it.type}</td>
           <td>${it.price}</td>
@@ -119,7 +125,6 @@
         stock: stockEl.value,
         name: nameEl.value,
         date: dateEl.value,
-        days: daysEl.value,
         port: portEl.value,
         type: typeEl.value,
         price: priceEl.value
@@ -138,7 +143,6 @@
       stockEl.value = it.stock;
       nameEl.value = it.name;
       dateEl.value = it.date;
-      daysEl.value = it.days;
       portEl.value = it.port;
       typeEl.value = it.type;
       priceEl.value = it.price;
@@ -159,7 +163,7 @@
         'หุ้น': it.stock,
         'ชื่อ': it.name,
         'วันที่เข้าซื้อ': it.date,
-        'ถือกี่วัน': it.days,
+        'ถือกี่วัน': calcDays(it.date),
         'พอร์ต': it.port,
         'ประเภท': it.type,
         'ราคาหุ้น': it.price
