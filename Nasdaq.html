@@ -1,15 +1,12 @@
 <!doctype html>
 <html lang="th">
   
-	<head>
-		<title>ตารางหุ้น</title>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="icon" type="image/png" href="images/house.png">
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-	</head>
-  
 <head>
+  <title>ตารางหุ้น</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="icon" type="image/png" href="images/house.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
     body {font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px;}
     .header {display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
@@ -24,6 +21,7 @@
     .actions button {margin-right: 5px; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer;}
     .edit {background: #3b82f6; color: white;}
     .delete {background: #ef4444; color: white;}
+    #rowCount {margin-top: 10px; font-weight: bold;}
   </style>
 </head>
 <body>
@@ -38,18 +36,19 @@
   <table id="dataTable">
     <thead>
       <tr>
-        <th>หุ้น</th>
-        <th>ชื่อ</th>
-        <th>วันที่เข้าซื้อ</th>
-        <th>ถือกี่วัน</th>
-        <th>พอร์ต</th>
-        <th>ประเภท</th>
-        <th>ราคาหุ้น</th>
+        <th data-key="stock">หุ้น</th>
+        <th data-key="name">ชื่อ</th>
+        <th data-key="date">วันที่เข้าซื้อ</th>
+        <th data-key="days">ถือกี่วัน</th>
+        <th data-key="port">พอร์ต</th>
+        <th data-key="type">ประเภท</th>
+        <th data-key="price">ราคาหุ้น</th>
         <th>การทำงาน</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
+  <div id="rowCount"></div>
 
   <!-- ฟอร์มเพิ่ม/แก้ไข -->
   <dialog id="dlg">
@@ -76,6 +75,7 @@
     const dlg = document.getElementById('dlg');
     const form = document.getElementById('form');
     const dlgTitle = document.getElementById('dlgTitle');
+    const rowCountEl = document.getElementById('rowCount');
 
     const idEl = document.getElementById('id');
     const stockEl = document.getElementById('stock');
@@ -86,6 +86,7 @@
     const priceEl = document.getElementById('price');
 
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let sortConfig = { key: null, asc: true };
 
     function calcDays(buyDate) {
       if (!buyDate) return "";
@@ -115,6 +116,7 @@
           </td>`;
         tbody.appendChild(tr);
       });
+      rowCountEl.textContent = `จำนวนรายการทั้งหมด: ${items.length}`;
     }
 
     function uid(){ return Date.now().toString(36)+Math.random().toString(36).substr(2,5); }
@@ -181,6 +183,31 @@
       XLSX.utils.book_append_sheet(wb, ws, "Stocks");
       XLSX.writeFile(wb, "stocks.xlsx");
     };
+
+    // ----- Sorting -----
+    document.querySelectorAll("th[data-key]").forEach(th=>{
+      th.addEventListener("click", ()=>{
+        const key = th.dataset.key;
+        if(sortConfig.key === key){
+          sortConfig.asc = !sortConfig.asc;
+        }else{
+          sortConfig.key = key;
+          sortConfig.asc = true;
+        }
+
+        items.sort((a,b)=>{
+          let va = (key==="days") ? calcDays(a.date) : a[key];
+          let vb = (key==="days") ? calcDays(b.date) : b[key];
+          if(!isNaN(va) && !isNaN(vb)){ // number sort
+            va = Number(va); vb = Number(vb);
+          }
+          if(va < vb) return sortConfig.asc ? -1 : 1;
+          if(va > vb) return sortConfig.asc ? 1 : -1;
+          return 0;
+        });
+        render();
+      });
+    });
 
     render();
   </script>
