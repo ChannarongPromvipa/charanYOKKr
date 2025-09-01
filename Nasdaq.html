@@ -197,8 +197,23 @@
           sortConfig.key = key;
           sortConfig.asc = true;
         }
+           
+        items.sort((a,b)=>{
+          let va = (key==="days") ? calcDays(a.date) : a[key];
+          let vb = (key==="days") ? calcDays(b.date) : b[key];
+          if(!isNaN(va) && !isNaN(vb)){ // number sort
+            va = Number(va); vb = Number(vb);
+          }
+          if(va < vb) return sortConfig.asc ? -1 : 1;
+          if(va > vb) return sortConfig.asc ? 1 : -1;
+          return 0;
+        });
+        render();
+      });
+    });
 
-    // ----- Import Excel -----
+    render();
+  // ----- Import Excel -----
 document.getElementById('importBtn').onclick = () => {
   document.getElementById('importFile').click();
 };
@@ -233,22 +248,7 @@ document.getElementById('importFile').addEventListener('change', e => {
   };
   reader.readAsArrayBuffer(file);
 });
-        
-        items.sort((a,b)=>{
-          let va = (key==="days") ? calcDays(a.date) : a[key];
-          let vb = (key==="days") ? calcDays(b.date) : b[key];
-          if(!isNaN(va) && !isNaN(vb)){ // number sort
-            va = Number(va); vb = Number(vb);
-          }
-          if(va < vb) return sortConfig.asc ? -1 : 1;
-          if(va > vb) return sortConfig.asc ? 1 : -1;
-          return 0;
-        });
-        render();
-      });
-    });
-
-    render();
+    
   </script>
 </body>
 </html>
