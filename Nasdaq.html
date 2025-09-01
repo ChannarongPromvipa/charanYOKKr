@@ -23,15 +23,18 @@
     .delete {background: #ef4444; color: white;}
     #rowCount {margin-top: 10px; font-weight: bold;}
   </style>
+  
 </head>
 <body>
-  <div class="header">
-    <h1>ตารางข้อมูลหุ้น</h1>
-    <div>
-      <button id="addBtn" class="btn add">+ เพิ่มข้อมูล</button>
-      <button id="exportBtn" class="btn export">ส่งออก Excel</button>
-    </div>
+<div class="header">
+  <h1>ตารางข้อมูลหุ้น</h1>
+  <div>
+    <input type="file" id="importFile" style="display:none" accept=".xlsx,.xls" />
+    <button id="importBtn" class="btn" style="background:#3b82f6; color:white;">นำเข้า Excel</button>
+    <button id="addBtn" class="btn add">+ เพิ่มข้อมูล</button>
+    <button id="exportBtn" class="btn export">ส่งออก Excel</button>
   </div>
+</div>
 
   <table id="dataTable">
     <thead>
@@ -195,6 +198,42 @@
           sortConfig.asc = true;
         }
 
+    // ----- Import Excel -----
+document.getElementById('importBtn').onclick = () => {
+  document.getElementById('importFile').click();
+};
+
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = evt => {
+    const data = new Uint8Array(evt.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    // แปลงข้อมูลให้ตรงกับโครงสร้าง
+    rows.forEach(r => {
+      items.push({
+        id: uid(),
+        stock: r['หุ้น'] || "",
+        name: r['ชื่อ'] || "",
+        date: r['วันที่เข้าซื้อ'] || "",
+        port: r['พอร์ต'] || "",
+        type: r['ประเภท'] || "",
+        price: r['ราคาหุ้น'] || ""
+      });
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    render();
+    alert("นำเข้าข้อมูลเรียบร้อยแล้ว!");
+  };
+  reader.readAsArrayBuffer(file);
+});
+        
         items.sort((a,b)=>{
           let va = (key==="days") ? calcDays(a.date) : a[key];
           let vb = (key==="days") ? calcDays(b.date) : b[key];
