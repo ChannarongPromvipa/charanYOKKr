@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>คำนวณหุ้นปันผล (Dividend Calculator)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0f172a; color:#e2e8f0; margin:0; }
+    .wrap { max-width: 980px; margin: 40px auto; padding: 24px; }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:20px; padding:24px; box-shadow: 0 10px 25px rgba(0,0,0,.25); }
+    h1 { margin:0 0 8px; font-size: clamp(22px, 4vw, 34px); letter-spacing:.2px; }
+    p.sub { margin:0 0 20px; color:#94a3b8; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 760px){ .grid { grid-template-columns: 1fr 1fr; } }
+    label { display:block; font-size:14px; color:#cbd5e1; margin-bottom:8px; }
+    input, select { width:100%; padding:12px 14px; border-radius:12px; border:1px solid #374151; background:#0b1220; color:#e5e7eb; outline:none; }
+    input:focus, select:focus { border-color:#64748b; box-shadow: 0 0 0 3px rgba(100,116,139,.25); }
+    .muted { color:#94a3b8; font-size:12px; margin-top:6px; }
+    .row { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 1024px){ .row { grid-template-columns: 2fr 1fr; } }
+    .results { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width:760px){ .results { grid-template-columns: repeat(2, 1fr); } }
+    .pill { background:#0b1220; border:1px solid #1f2937; border-radius:14px; padding:14px; }
+    .pill h3 { margin:0; font-size:14px; color:#94a3b8; }
+    .pill .val { margin-top:6px; font-size: clamp(18px, 3.2vw, 26px); font-weight:700; color:#f8fafc; }
+    .small { font-size:12px; color:#a3a3a3; }
+    .footer { margin-top:18px; color:#9ca3af; font-size:12px; }
+    .hr { height:1px; background:linear-gradient(90deg,transparent,#1f2937,transparent); margin:16px 0; }
+    .note { background:#0b1220; border-left:4px solid #334155; padding:10px 12px; border-radius:10px; color:#94a3b8; }
+    .btn { display:inline-block; margin-top:8px; padding:10px 14px; border-radius:12px; border:1px solid #334155; background:#0b1220; color:#e5e7eb; cursor:pointer; }
+    .btn:hover { filter:brightness(1.1); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>คำนวณหุ้นปันผล (Dividend Calculator)</h1>
+      <p class="sub">ใส่จำนวนหุ้น ราคาต่อหุ้น และปันผลต่อหุ้น ระบบจะคำนวณเงินปันผลต่อรอบ ต่อปี อัตรา Dividend Yield รวมถึงหลังหักภาษี และแปลงเป็นบาท (ถ้าระบุเรท)</p>
+
+      <div class="row">
+        <div>
+          <div class="grid">
+            <div>
+              <label for="shares">จำนวนหุ้น (Shares)</label>
+              <input id="shares" type="number" min="0" step="1" value="1" />
+              <div class="muted"></div>
+            </div>
+            <div>
+              <label for="price">ราคาต่อหุ้น (USD)</label>
+              <input id="price" type="number" min="0" step="0.01" value="15" />
+              <div class="muted"></div>
+            </div>
+            <div>
+              <label for="divps">ปันผลต่อหุ้นต่อรอบ (USD)</label>
+              <input id="divps" type="number" min="0" step="0.01" value="0.50" />
+              <div class="muted"></div>
+            </div>
+            <div>
+              <label for="freq">รอบการจ่าย (Frequency)</label>
+              <select id="freq">
+                <option value="4" selected>รายไตรมาส (Quarterly)</option>
+                <option value="12">รายเดือน (Monthly)</option>
+                <option value="2">รายครึ่งปี (Semi‑Annual)</option>
+                <option value="1">รายปี (Annual)</option>
+              </select>
+            </div>
+            <div>
+              <label for="tax">หักภาษี ณ ที่จ่าย (%)</label>
+              <input id="tax" type="number" min="0" max="100" step="0.1" value="0" />
+              <div class="muted">หุ้นต่างประเทศอาจถูกหักภาษี ณ ที่จ่าย (เช่น 10%–30%)</div>
+            </div>
+            <div>
+              <label for="fx">เรทแปลง USD → THB (ไม่บังคับ)</label>
+              <input id="fx" type="number" min="0" step="0.01" placeholder="เช่น 36.5" />
+              <div class="muted">เพื่อดูมูลค่าเป็นเงินบาท</div>
+            </div>
+          </div>
+
+          <button class="btn" id="reset">ล้างค่า</button>
+        </div>
+
+        <div>
+          <div class="results">
+            <div class="pill">
+              <h3>มูลค่าลงทุนรวม</h3>
+              <div class="val" id="investVal">$0.00</div>
+              <div class="small" id="investValTHB"></div>
+            </div>
+            <div class="pill">
+              <h3>ปันผลต่อรอบ (ก่อนหักภาษี)</h3>
+              <div class="val" id="divPerPayout">$0.00</div>
+              <div class="small" id="divPerPayoutTHB"></div>
+            </div>
+            <div class="pill">
+              <h3>ปันผลต่อรอบ (หลังหักภาษี)</h3>
+              <div class="val" id="divPerPayoutNet">$0.00</div>
+              <div class="small" id="divPerPayoutNetTHB"></div>
+            </div>
+            <div class="pill">
+              <h3>ปันผลต่อปี (ก่อนหักภาษี)</h3>
+              <div class="val" id="divPerYear">$0.00</div>
+              <div class="small" id="divPerYearTHB"></div>
+            </div>
+            <div class="pill">
+              <h3>ปันผลต่อปี (หลังหักภาษี)</h3>
+              <div class="val" id="divPerYearNet">$0.00</div>
+              <div class="small" id="divPerYearNetTHB"></div>
+            </div>
+            <div class="pill">
+              <h3>Dividend Yield (ก่อนภาษี)</h3>
+              <div class="val" id="yield">0.00%</div>
+              <div class="small">= (ปันผลต่อปี ÷ มูลค่าลงทุน) × 100</div>
+            </div>
+            <div class="pill">
+              <h3>Dividend Yield (หลังภาษี)</h3>
+              <div class="val" id="yieldNet">0.00%</div>
+              <div class="small">ประเมินผลตอบแทนสุทธิ</div>
+            </div>
+          </div>
+          <div class="footer">
+            <div class="hr"></div>
+            <div class="note">ตัวอย่าง: 31 หุ้น × ปันผลต่อหุ้น 0.50 USD ⇒ <b>ปันผลต่อรอบ = 15.50 USD</b>. หากรายไตรมาส ต่อปี (4 รอบ) = 62.00 USD ก่อนหักภาษี</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const fmtUSD = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
+    function fmtTHB(x){ return new Intl.NumberFormat('th-TH', { style:'currency', currency:'THB' }).format(x); }
+
+    const inputs = ['shares','price','divps','freq','tax','fx'].map($);
+
+    function val(n){
+      const v = parseFloat(n.value);
+      return isNaN(v) ? 0 : v;
+    }
+
+    function compute(){
+      const shares = Math.max(0, Math.floor(val($('shares'))));
+      const price  = Math.max(0, val($('price')));
+      const divps  = Math.max(0, val($('divps')));
+      const freq   = Math.max(1, Math.floor(val($('freq'))));
+      const taxPct = Math.min(100, Math.max(0, val($('tax'))));
+      const fx     = val($('fx')) > 0 ? val($('fx')) : null;
+
+      const investment = shares * price;
+      const divPerPayout = shares * divps;
+      const divPerPayoutNet = divPerPayout * (1 - taxPct/100);
+      const divPerYear = divPerPayout * freq;
+      const divPerYearNet = divPerPayoutNet * freq;
+
+      const yieldGross = investment > 0 ? (divPerYear / investment * 100) : 0;
+      const yieldNet   = investment > 0 ? (divPerYearNet / investment * 100) : 0;
+
+      // Render USD
+      $('investVal').textContent = fmtUSD.format(investment);
+      $('divPerPayout').textContent = fmtUSD.format(divPerPayout);
+      $('divPerPayoutNet').textContent = fmtUSD.format(divPerPayoutNet);
+      $('divPerYear').textContent = fmtUSD.format(divPerYear);
+      $('divPerYearNet').textContent = fmtUSD.format(divPerYearNet);
+      $('yield').textContent = `${yieldGross.toFixed(2)}%`;
+      $('yieldNet').textContent = `${yieldNet.toFixed(2)}%`;
+
+      // Render THB if FX provided
+      $('investValTHB').textContent = fx ? `≈ ${fmtTHB(investment * fx)}` : '';
+      $('divPerPayoutTHB').textContent = fx ? `≈ ${fmtTHB(divPerPayout * fx)}` : '';
+      $('divPerPayoutNetTHB').textContent = fx ? `≈ ${fmtTHB(divPerPayoutNet * fx)}` : '';
+      $('divPerYearTHB').textContent = fx ? `≈ ${fmtTHB(divPerYear * fx)}` : '';
+      $('divPerYearNetTHB').textContent = fx ? `≈ ${fmtTHB(divPerYearNet * fx)}` : '';
+    }
+
+    inputs.forEach(el => el.addEventListener('input', compute));
+    $('reset').addEventListener('click', () => {
+      $('shares').value = '';
+      $('price').value = '';
+      $('divps').value = '';
+      $('freq').value = '4';
+      $('tax').value = '0';
+      $('fx').value = '';
+      compute();
+    });
+
+    // initial render
+    compute();
+  </script>
+</body>
+</html>
