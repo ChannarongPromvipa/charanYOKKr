@@ -129,7 +129,7 @@
       let amount2 = parseFloat(document.getElementById("loanAmount2").value);
       let rate2 = parseFloat(document.getElementById("interestRate2").value) / 100 / 12;
       let years2 = parseFloat(document.getElementById("loanYears2").value);
-      let months2 = years * 12;
+      let months2 = years2 * 12;
 
       // สูตรคำนวณค่างวดต่อเดือน
       let monthlyPayment2 = (amount2 * rate2) / (1 - Math.pow(1 + rate2, -months2));
