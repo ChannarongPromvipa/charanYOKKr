@@ -102,4 +102,48 @@
     }
   </script>
 </body>
+  
+  <body>
+  <div class="container">
+    <h2>คำนวณดอกเบี้ยเงินกู้</h2>
+    
+    <label>จำนวนเงินกู้ (บาท)</label>
+    <input type="number" id="loanAmount2" placeholder="เช่น 200000">
+    
+    <label>อัตราดอกเบี้ย (% ต่อปี)</label>
+    <input type="number" id="interestRate2" placeholder="เช่น 5">
+    
+    <label>ระยะเวลา (ปี)</label>
+    <input type="number" id="loanYears2" placeholder="เช่น 5">
+    
+    <button onclick="calculateLoan2()">คำนวณ</button>
+    
+    <div class="result" id="result2"></div>
+  </div>
+
+  <script>
+    function calculateLoan() {
+      let amount2 = parseFloat(document.getElementById("loanAmount2").value);
+      let rate2 = parseFloat(document.getElementById("interestRate2").value) / 100 / 12;
+      let years2 = parseFloat(document.getElementById("loanYears2").value);
+      let months2 = years * 12;
+
+      // สูตรคำนวณค่างวดต่อเดือน
+      let monthlyPayment2 = (amount2 * rate2) / (1 - Math.pow(1 + rate2, -months2));
+
+      if (isFinite(monthlyPayment2)) {
+        let totalPayment2 = monthlyPayment2 * months2;
+        let totalInterest2 = totalPayment2 - amount2;
+
+        document.getElementById("result2").innerHTML = `
+          <p><strong>ค่างวดต่อเดือน:</strong> ${monthlyPayment2.toFixed(2)} บาท</p>
+          <p><strong>ยอดรวมที่ต้องจ่าย:</strong> ${totalPayment2.toFixed(2)} บาท</p>
+          <p><strong>ดอกเบี้ยรวม:</strong> ${totalInterest2.toFixed(2)} บาท</p>
+        `;
+      } else {
+        document.getElementById("result2").innerHTML = "<p style='color:red;'>กรุณากรอกข้อมูลให้ครบถ้วน</p>";
+      }
+    }
+  </script>
+</body>
 </html>
