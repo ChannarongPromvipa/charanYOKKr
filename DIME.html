@@ -32,6 +32,92 @@
 										<li><a href="https://www.instagram.com/k_h_e_t_13_02?igsh=cnU3d3dwaWoxajR4" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
 									</ul>
 								</header>
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>กราฟ AUM รายเดือน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1320; --card:#121a2b; --ink:#e7eefc; --muted:#9fb0d0; --accent:#4cc9f0; --ring:#2a3550;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Prompt,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:800px;margin:32px auto;padding:0 16px}
+    h1{font-weight:600;letter-spacing:.2px;margin:0 0 16px}
+    .card{background:linear-gradient(180deg,#17213a, var(--card)); border:1px solid var(--ring);border-radius:16px;padding:16px 16px 24px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    canvas{width:100%!important;height:400px!important}
+    .footer{color:var(--muted);font-size:.9rem;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>สถิติ AUM รายเดือน</h1>
+    <div class="card">
+      <canvas id="aumChart" aria-label="AUM"></canvas>
+      <div class="footer">ตัวอย่างมูลค่า (บาท) และ % กำไร/ขาดทุน</div>
+    </div>
+  </div>
+
+<script>
+  // ====== แก้ไขข้อมูลตรงนี้ ======
+  const labels = ['ส.ค. 2568', 'ก.ย. 2568'];
+  const aum = [16176.55, 17917.86]; // บาท
+  const returns = [9.64, 2.46];     // %
+  // ==============================
+
+  const fmtBaht = v => v.toLocaleString("th-TH", {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  const ctxAum = document.getElementById('aumChart');
+  new Chart(ctxAum, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'AUM (บาท)', data: aum, yAxisID: 'y', backgroundColor: '#4cc9f0', borderColor: '#4cc9f0', borderWidth: 1 },
+        { label: '% กำไร/ขาดทุน', data: returns, type: 'line', yAxisID: 'y1', tension: .35, borderWidth: 3, pointRadius: 4, borderColor: '#a0e418' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,.08)' },
+          ticks: { callback: v => fmtBaht(v) }
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          ticks: { callback: v => v + '%' }
+        },
+        x: { grid: { display:false } }
+      },
+      plugins: {
+        legend: { labels: { color: '#e7eefc' } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              if(ctx.dataset.label.includes('AUM')) return `${ctx.dataset.label}: ${fmtBaht(ctx.parsed.y)} บาท`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>
+							
 <section id="banner">
 <div class="posts">
 <article>
