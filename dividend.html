@@ -35,7 +35,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>คำนวณหุ้นปันผล (Dividend Calculator)</h1>
+      <h1>คำนวณหุ้นปันผล อเมริกา (Dividend Calculator)</h1>
       <p class="sub">ใส่จำนวนหุ้น ราคาต่อหุ้น และปันผลต่อหุ้น ระบบจะคำนวณเงินปันผลต่อรอบ ต่อปี อัตรา Dividend Yield รวมถึงหลังหักภาษี และแปลงเป็นบาท (ถ้าระบุเรท)</p>
 
       <div class="row">
@@ -189,3 +189,152 @@
   </script>
 </body>
 </html>
+
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>เครื่องคำนวณปันผลหุ้นไทย</title>
+  <style>
+    :root{--bg:#f6f9fc;--card:#ffffff;--accent:#0b74de;--muted:#6b7280}
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    body{margin:0;background:var(--bg);color:#0f1724;padding:28px}
+    .container{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(8,15,30,0.06)}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type="number"], input[type="text"], select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px}
+    .full{grid-column:1/-1}
+    .result{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .tile{flex:1 1 180px;background:linear-gradient(180deg,#fff,#fbfdff);padding:12px;border-radius:10px;border:1px solid #eef3ff}
+    .tile .label{font-size:12px;color:var(--muted)}
+    .tile .value{font-weight:700;font-size:18px;margin-top:6px}
+    button{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:0;font-weight:600;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    footer{margin-top:12px;font-size:13px;color:var(--muted)}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}.tile{flex-basis:100%}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>เครื่องคำนวณปันผลหุ้น (ไทย)</h1>
+      <div class="muted">คำนวณผลตอบแทนปันผล กำไรสุทธิหลังหักภาษี และอัตราปันผล (%)</div>
+    </header>
+
+    <section class="card">
+      <div class="grid">
+        <div>
+          <label>จำนวนหุ้น (หุ้น)</label>
+          <input id="shares" type="number" min="0" step="1" value="100" />
+        </div>
+
+        <div>
+          <label>ราคาต่อหุ้น (บาท)</label>
+          <input id="price" type="number" min="0" step="0.01" value="10.00" />
+        </div>
+
+        <div>
+          <label>ปันผลต่อหุ้น (บาท)</label>
+          <input id="divPerShare" type="number" min="0" step="0.01" value="0.40" />
+        </div>
+
+        <div>
+          <label>จำนวนครั้งจ่ายต่อปี</label>
+          <select id="payoutsPerYear">
+            <option value="1">1 ครั้ง/ปี</option>
+            <option value="2">2 ครั้ง/ปี</option>
+            <option value="4">4 ครั้ง/ปี</option>
+          </select>
+        </div>
+
+        <div>
+          <label>อัตราภาษี ณ ที่จ่าย (%) (ตั้งต้น 10%)</label>
+          <input id="withholdingTax" type="number" min="0" max="100" step="0.1" value="10" />
+        </div>
+
+        <div>
+          <label>ค่าธรรมเนียม/ค่าใช้จ่ายอื่น (บาท)</label>
+          <input id="fees" type="number" min="0" step="0.01" value="0" />
+        </div>
+
+        <div class="full">
+          <label>หมายเหตุ (ไม่บังคับ)</label>
+          <input id="note" type="text" placeholder="เช่น วันที่จ่าย, เฉพาะปี 2025" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <button id="calcBtn">คำนวณ</button>
+        <button id="resetBtn" style="background:#e6eaf8;color:var(--accent)">รีเซ็ต</button>
+        <div class="muted" style="margin-left:auto">ผลลัพธ์จะแสดงในช่องด้านล่าง</div>
+      </div>
+
+      <div class="result" id="results" aria-live="polite"></div>
+
+      <footer>
+        <div>หมายเหตุ: อัตราภาษี ณ ที่จ่ายของเงินปันผลโดยทั่วไปมักเป็น 10% สำหรับผู้ถือหุ้นบุคคล — ปรับค่าได้ตามกรณีจริง (ตรวจสอบกับที่ปรึกษาภาษีของคุณ)</div>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const fmtCurrency = v => {
+      if (isNaN(v)) return "-";
+      return Number(v).toLocaleString('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 2 });
+    }
+
+    function calculate(){
+      const shares = Number($('shares').value) || 0;
+      const price = Number($('price').value) || 0;
+      const divPerShare = Number($('divPerShare').value) || 0;
+      const payouts = Number($('payoutsPerYear').value) || 1;
+      const taxPct = Number($('withholdingTax').value) || 0;
+      const fees = Number($('fees').value) || 0;
+
+      const investment = shares * price;
+      const grossDividendPerPayment = shares * divPerShare; // ต่อการจ่ายครั้งหนึ่ง
+      const grossDividendPerYear = grossDividendPerPayment * payouts;
+      const taxAmount = grossDividendPerYear * (taxPct/100);
+      const netDividend = grossDividendPerYear - taxAmount - fees;
+      const dividendYieldPerPayment = price > 0 ? (divPerShare / price) * 100 : 0;
+      const dividendYieldAnnual = dividendYieldPerPayment * payouts;
+      const netYieldAnnual = investment > 0 ? (netDividend / investment) * 100 : 0;
+
+      const results = [
+        {label: 'เงินลงทุนทั้งหมด', value: fmtCurrency(investment)},
+        {label: 'ปันผลรวม (ก่อนหักภาษี) ต่อปี', value: fmtCurrency(grossDividendPerYear)},
+        {label: `ภาษีหัก ณ ที่จ่าย (${taxPct}%)`, value: fmtCurrency(taxAmount)},
+        {label: 'ค่าธรรมเนียม/ค่าใช้จ่ายรวม', value: fmtCurrency(fees)},
+        {label: 'ปันผลสุทธิ ต่อปี', value: fmtCurrency(netDividend)},
+        {label: 'อัตราปันผล (Dividend Yield) ต่อปี', value: dividendYieldAnnual.toFixed(2) + ' %'},
+        {label: 'อัตราปันผลสุทธิ หลังภาษี (ต่อปี)', value: netYieldAnnual.toFixed(2) + ' %'},
+        {label: 'ปันผลต่อหุ้น (ต่อการจ่าย 1 ครั้ง)', value: fmtCurrency(divPerShare)}
+      ];
+
+      const container = $('results');
+      container.innerHTML = '';
+      results.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.innerHTML = `<div class="label">${r.label}</div><div class="value">${r.value}</div>`;
+        container.appendChild(el);
+      });
+    }
+
+    $('calcBtn').addEventListener('click', calculate);
+    $('resetBtn').addEventListener('click', ()=>{
+      $('shares').value = 100; $('price').value = 10.00; $('divPerShare').value = 0.40; $('payoutsPerYear').value = 1; $('withholdingTax').value = 10; $('fees').value = 0; $('note').value = '';
+      $('results').innerHTML = '';
+    });
+
+    // คำนวณครั้งแรกเมื่อโหลด
+    calculate();
+  </script>
+</body>
+</html>
+
