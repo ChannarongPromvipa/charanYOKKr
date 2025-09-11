@@ -114,70 +114,88 @@
 			<h4>HBD Family</h4>
 			<div class="table-wrapper">
 			  <table class="alt" id="birthdayTable">
-			    <thead>
-			      <tr>
-			        <th data-key="name">Name</th>
-			        <th data-key="date">DATE</th>
-			        <th data-key="year">YEAR OLD</th>
-			      </tr>
-			    </thead>
-			    <tbody>
-			      <tr>
-			        <td>มารดา</td>
-			        <td>28/01/1977</td>
-			        <td></td>
-			      </tr>
-			      <tr>
-			        <td>ตัวเอง</td>
-			        <td>13/02/2001</td>
-			        <td></td>
-			      </tr>
-			      <tr>
-			        <td>สะเมีย</td>
-			        <td>31/03/2000</td>
-			        <td></td>
-			      </tr>
-			      <tr>
-			        <td>ลุงนก</td>
-			        <td>20/04/1966</td>
-			        <td></td>
-			      </tr>
-					<tr>
-			        <td>วันพ่อแห่งชาติ</td>
-			        <td>28/07/2025</td>
-			        <td></td>
-			     	</tr>
-			      <tr>
-			        <td>พี่กล้า</td>
-			        <td>02/08/1995</td>
-			        <td></td>
-			      </tr>
-			      <tr>
-			        <td>พี่พิมพ์</td>
-			        <td>05/08/1995</td>
-			        <td></td>
-			      </tr>
-					<tr>
-			        <td>วันแม่แห่งชาติ</td>
-			        <td>12/08/2025</td>
-			        <td></td>
-			     	</tr>
-			      <tr>
-			        <td>วันครบรอบ</td>
-			        <td>26/09/2020</td>
-			        <td></td>
-			      </tr>
-			      <tr>
-			        <td>พี่ยา</td>
-			        <td>10/11/1992</td>
-			        <td></td>
-			      </tr>
-			    </tbody>
+					    <thead>
+		      <tr>
+		        <th data-key="name">Name</th>
+		        <th data-key="date">DATE</th>
+		        <th data-key="year">YEAR OLD</th>
+		      </tr>
+		    </thead>
+		    <tbody>
+		      <tr><td>มารดา</td><td>28/01/1977</td><td>47</td></tr>
+		      <tr><td>ตัวเอง</td><td>13/02/2001</td><td>23</td></tr>
+		      <tr><td>สะเมีย</td><td>31/03/2000</td><td>24</td></tr>
+		      <tr><td>ลุงนก</td><td>20/04/1966</td><td>58</td></tr>
+		      <tr><td>วันพ่อแห่งชาติ</td><td>28/07/2025</td><td>-</td></tr>
+		      <tr><td>พี่กล้า</td><td>02/08/1995</td><td>29</td></tr>
+		      <tr><td>พี่พิมพ์</td><td>05/08/1995</td><td>29</td></tr>
+		      <tr><td>วันแม่แห่งชาติ</td><td>12/08/2025</td><td>-</td></tr>
+		      <tr><td>วันครบรอบ</td><td>26/09/2020</td><td>-</td></tr>
+		      <tr><td>พี่ยา</td><td>10/11/1992</td><td>32</td></tr>
+		    </tbody>
 			  </table>
 			</div>
 			</article>
 			</section>
 			<script>
+				<script>
+		    let sortConfig = { key: null, asc: true };
+		
+		    function getItems() {
+		      const rows = document.querySelectorAll("#birthdayTable tbody tr");
+		      return Array.from(rows).map(row => {
+		        return {
+		          name: row.cells[0].textContent.trim(),
+		          date: row.cells[1].textContent.trim(),
+		          year: row.cells[2].textContent.trim(),
+		          row: row
+		        };
+		      });
+		    }
+		
+		    function parseDate(d) {
+		      if (!d) return null;
+		      let parts = d.split("/");
+		      if (parts.length !== 3) return null;
+		      return new Date(parts[2], parts[1] - 1, parts[0]); // yyyy,mm,dd
+		    }
+		
+		    document.querySelectorAll("th[data-key]").forEach(th => {
+		      th.addEventListener("click", () => {
+		        const key = th.dataset.key;
+		        if (sortConfig.key === key) {
+		          sortConfig.asc = !sortConfig.asc;
+		        } else {
+		          sortConfig.key = key;
+		          sortConfig.asc = true;
+		        }
+		
+		        let items = getItems();
+		        items.sort((a, b) => {
+		          let va, vb;
+		          if (key === "date") {
+		            va = parseDate(a.date);
+		            vb = parseDate(b.date);
+		          } else if (key === "year") {
+		            va = a.year === "-" ? NaN : Number(a.year);
+		            vb = b.year === "-" ? NaN : Number(b.year);
+		          } else {
+		            va = a[key];
+		            vb = b[key];
+		          }
+		
+		          if (va < vb) return sortConfig.asc ? -1 : 1;
+		          if (va > vb) return sortConfig.asc ? 1 : -1;
+		          return 0;
+		        });
+		
+		        const tbody = document.querySelector("#birthdayTable tbody");
+		        tbody.innerHTML = "";
+		        items.forEach(it => tbody.appendChild(it.row));
+		      });
+		    });
+				
+				
 			  function calculateAge(dateStr) {
 			    // แยกวัน/เดือน/ปี จาก dd/mm/yyyy
 			    let parts = dateStr.split("/");
@@ -322,6 +340,7 @@
 	</body>
 
 </html>
+
 
 
 
