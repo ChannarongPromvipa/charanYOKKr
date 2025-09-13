@@ -141,89 +141,93 @@
 			</section>
 
 <script>
-		    let sortConfig = { key: null, asc: true };
-		
-		    function getItems() {
-		      const rows = document.querySelectorAll("#birthdayTable tbody tr");
-		      return Array.from(rows).map(row => {
-		        return {
-		          name: row.cells[0].textContent.trim(),
-		          date: row.cells[1].textContent.trim(),
-		          year: row.cells[2].textContent.trim(),
-		          row: row
-		        };
-		      });
-		    }
-		
-		    function parseDate(d) {
-		      if (!d) return null;
-		      let parts = d.split("/");
-		      if (parts.length !== 3) return null;
-		      return new Date(parts[2], parts[1] - 1, parts[0]); // yyyy,mm,dd
-		    }
-		
-		    document.querySelectorAll("th[data-key]").forEach(th => {
-		      th.addEventListener("click", () => {
-		        const key = th.dataset.key;
-		        if (sortConfig.key === key) {
-		          sortConfig.asc = !sortConfig.asc;
-		        } else {
-		          sortConfig.key = key;
-		          sortConfig.asc = true;
-		        }
-		
-		        let items = getItems();
-		        items.sort((a, b) => {
-		          let va, vb;
-		          if (key === "date") {
-		            va = parseDate(a.date);
-		            vb = parseDate(b.date);
-		          } else if (key === "year") {
-		            va = a.year === "-" ? NaN : Number(a.year);
-		            vb = b.year === "-" ? NaN : Number(b.year);
-		          } else {
-		            va = a[key];
-		            vb = b[key];
-		          }
-		
-		          if (va < vb) return sortConfig.asc ? -1 : 1;
-		          if (va > vb) return sortConfig.asc ? 1 : -1;
-		          return 0;
-		        });
-		
-		        const tbody = document.querySelector("#birthdayTable tbody");
-		        tbody.innerHTML = "";
-		        items.forEach(it => tbody.appendChild(it.row));
-		      });
-		    });
-				
-				
-			  function calculateAge(dateStr) {
-			    // แยกวัน/เดือน/ปี จาก dd/mm/yyyy
-			    let parts = dateStr.split("/");
-			    let day = parseInt(parts[0], 10);
-			    let month = parseInt(parts[1], 10) - 1; // เดือนเริ่มจาก 0
-			    let year = parseInt(parts[2], 10);
-			
-			    let birthDate = new Date(year, month, day);
-			    let today = new Date();
-			
-			    let age = today.getFullYear() - birthDate.getFullYear();
-			    let m = today.getMonth() - birthDate.getMonth();
-			    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-			      age--;
-			    }
-			    return age;
-			  }
-			
-			  // วนลูปทุกแถวแล้วคำนวณอายุ
-			  let table = document.getElementById("birthdayTable");
-			  for (let i = 1; i < table.rows.length; i++) {
-			    let dateStr = table.rows[i].cells[1].innerText.trim();
-			    table.rows[i].cells[2].innerText = calculateAge(dateStr);
-			  }
-				
+  let sortConfig = { key: null, asc: true };
+
+  function getItems() {
+    const rows = document.querySelectorAll("#birthdayTable tbody tr");
+    return Array.from(rows).map(row => {
+      return {
+        name: row.cells[0].textContent.trim(),
+        date: row.cells[1].textContent.trim(),
+        year: row.cells[2].textContent.trim(),
+        row: row
+      };
+    });
+  }
+
+  function parseDate(d) {
+    if (!d) return null;
+    let parts = d.split("/");
+    if (parts.length !== 3) return null;
+    return new Date(parts[2], parts[1] - 1, parts[0]); // yyyy,mm,dd
+  }
+
+  document.querySelectorAll("th[data-key]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      if (sortConfig.key === key) {
+        sortConfig.asc = !sortConfig.asc;
+      } else {
+        sortConfig.key = key;
+        sortConfig.asc = true;
+      }
+
+      let items = getItems();
+      items.sort((a, b) => {
+        let va, vb;
+        if (key === "date") {
+          va = parseDate(a.date);
+          vb = parseDate(b.date);
+        } else if (key === "year") {
+          va = a.year === "-" ? NaN : Number(a.year);
+          vb = b.year === "-" ? NaN : Number(b.year);
+        } else {
+          va = a[key];
+          vb = b[key];
+        }
+
+        if (va < vb) return sortConfig.asc ? -1 : 1;
+        if (va > vb) return sortConfig.asc ? 1 : -1;
+        return 0;
+      });
+
+      const tbody = document.querySelector("#birthdayTable tbody");
+      tbody.innerHTML = "";
+      items.forEach(it => tbody.appendChild(it.row));
+    });
+  });
+
+  // ฟังก์ชันคำนวณอายุ
+  function calculateAge(dateStr) {
+    let parts = dateStr.split("/");
+    if (parts.length !== 3) return "-";
+
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+
+    let birthDate = new Date(year, month, day);
+    let today = new Date();
+
+    // ถ้าวันเกิดอยู่ในอนาคต => return "-"
+    if (birthDate > today) return "-";
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    let m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  // วนลูปทุกแถวแล้วคำนวณอายุ
+  let table = document.getElementById("birthdayTable");
+  for (let i = 1; i < table.rows.length; i++) {
+    let dateStr = table.rows[i].cells[1].innerText.trim();
+    table.rows[i].cells[2].innerText = calculateAge(dateStr);
+  }
 </script>
+
 															
 </div>
 </div>
@@ -315,6 +319,7 @@
 	</body>
 
 </html>
+
 
 
 
