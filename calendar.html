@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ปฏิทิน</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#f8f9fb;
+      --muted:#6b7280;
+      --accent:#1f2937;
+      --accent-2:#0f172a;
+      --accent-3:#e6eef8;
+      font-size:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans',Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif;background:var(--bg);color:var(--accent)}
+    .wrap{max-width:980px;margin:28px auto;padding:18px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .title{font-size:1.125rem;font-weight:600}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:transparent;border:1px solid #e6eef8;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .month{font-weight:700;padding:6px 10px;border-radius:8px}
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .weekday{font-size:0.875rem;color:var(--muted);text-align:center;padding:8px 0}
+    .day{min-height:86px;background:#fff;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;border:1px solid transparent}
+    .day.other{opacity:0.38}
+    .day .date{font-weight:600}
+    .day .dot{width:8px;height:8px;border-radius:50%}
+    .day:hover{box-shadow:0 6px 14px rgba(15,23,42,0.06);transform:translateY(-2px)}
+    .today{border:1px solid #bfe0ff}
+    .notes-list{margin-top:12px}
+    .note-item{background:#fff;padding:8px;border-radius:8px;margin-bottom:6px;border:1px solid #eef2f7;display:flex;justify-content:space-between;gap:10px}
+    .note-item small{color:var(--muted)}
+    .empty{color:var(--muted);padding:18px;text-align:center}
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center}
+    .modal{background:#fff;border-radius:12px;padding:18px;max-width:520px;width:92%}
+    .modal h3{margin:0 0 8px}
+    label{display:block;font-size:0.875rem;margin-top:8px}
+    input[type=text],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8}
+    .row{display:flex;gap:8px;align-items:center}
+    .row.space{justify-content:space-between}
+    .btn-primary{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px}
+    .btn-danger{background:#ffecec;color:#7b1616;border:none;padding:8px 12px;border-radius:8px}
+    @media (max-width:720px){.day{min-height:72px}.wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div class="title">ปฏิทิน</div>
+        <div class="controls">
+          <button id="prev">◀</button>
+          <div class="month" id="monthLabel">Month</div>
+          <button id="next">▶</button>
+          <button id="gotoToday">Today</button>
+        </div>
+      </header>
+
+      <div class="calendar" id="calendar">
+        <!-- Weekdays + days injected by JS -->
+      </div>
+
+      <div class="notes-list card" style="margin-top:14px;padding:12px;">
+        <h4 style="margin:0 0 8px">บันทึกของวันที่ <span id="selectedDateLabel">-</span></h4>
+        <div id="notesContainer"></div>
+        <div id="emptyNotes" class="empty">เลือกวันที่บนปฏิทินเพื่อเพิ่ม/แก้ไขบันทึก</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <template id="modalTpl">
+    <div class="modal-backdrop">
+      <div class="modal">
+        <h3 id="modalTitle">Add note</h3>
+        <label>วันที่</label>
+        <input type="text" id="noteDate" readonly />
+        <label>หัวข้อ</label>
+        <input type="text" id="noteTitle" placeholder="เช่น นัดหมาย / ไอเดีย" />
+        <label>รายละเอียด</label>
+        <textarea id="noteBody" rows="5" placeholder="พิมพ์รายละเอียด..."></textarea>
+        <div class="row space" style="margin-top:10px">
+          <div>
+            <button class="btn-primary" id="saveNote">บันทึก</button>
+            <button id="cancelNote">ยกเลิก</button>
+          </div>
+          <div>
+            <button class="btn-danger" id="deleteNote" style="display:none">ลบ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    // Simple calendar with localStorage notes. Dates stored as YYYY-MM-DD -> array of notes
+    const weekdays = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+    const calendarEl = document.getElementById('calendar');
+    const monthLabel = document.getElementById('monthLabel');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const gotoToday = document.getElementById('gotoToday');
+    const selectedDateLabel = document.getElementById('selectedDateLabel');
+    const notesContainer = document.getElementById('notesContainer');
+    const emptyNotes = document.getElementById('emptyNotes');
+
+    let cur = new Date();
+    let selectedDate = null; // Date string YYYY-MM-DD
+
+    function pad(n){return n<10? '0'+n: ''+n}
+    function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+
+    function loadNotesFor(dateStr){
+      const raw = localStorage.getItem('notes_'+dateStr);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveNotesFor(dateStr, arr){
+      localStorage.setItem('notes_'+dateStr, JSON.stringify(arr));
+    }
+
+    function openModal(opts={date:'',note:null}){
+      const tpl = document.getElementById('modalTpl');
+      const node = tpl.content.cloneNode(true);
+      document.body.appendChild(node);
+      const modal = document.querySelector('.modal-backdrop:last-of-type');
+      const noteDate = modal.querySelector('#noteDate');
+      const noteTitle = modal.querySelector('#noteTitle');
+      const noteBody = modal.querySelector('#noteBody');
+      const saveBtn = modal.querySelector('#saveNote');
+      const cancelBtn = modal.querySelector('#cancelNote');
+      const delBtn = modal.querySelector('#deleteNote');
+      const modalTitle = modal.querySelector('#modalTitle');
+
+      noteDate.value = opts.date;
+      if(opts.note){
+        modalTitle.textContent = 'แก้ไขบันทึก';
+        noteTitle.value = opts.note.title||'';
+        noteBody.value = opts.note.body||'';
+        delBtn.style.display = 'inline-block';
+      } else {
+        modalTitle.textContent = 'เพิ่มบันทึกใหม่';
+      }
+
+      cancelBtn.onclick = ()=> modal.remove();
+
+      saveBtn.onclick = ()=>{
+        const notes = loadNotesFor(opts.date);
+        if(opts.note && opts.index !== undefined){
+          notes[opts.index] = {title: noteTitle.value.trim(), body: noteBody.value.trim(), updated: Date.now()};
+        } else {
+          notes.push({title: noteTitle.value.trim(), body: noteBody.value.trim(), created: Date.now()});
+        }
+        saveNotesFor(opts.date, notes);
+        modal.remove();
+        renderNotes(opts.date);
+        renderCalendar();
+      };
+
+      delBtn.onclick = ()=>{
+        if(!opts.note) return;
+        let notes = loadNotesFor(opts.date);
+        notes.splice(opts.index,1);
+        saveNotesFor(opts.date, notes);
+        modal.remove();
+        renderNotes(opts.date);
+        renderCalendar();
+      }
+    }
+
+    function renderWeekdays(){
+      calendarEl.innerHTML = '';
+      weekdays.forEach(w=>{
+        const el = document.createElement('div'); el.className='weekday'; el.textContent = w; calendarEl.appendChild(el);
+      });
+    }
+
+    function renderCalendar(){
+      renderWeekdays();
+      const year = cur.getFullYear();
+      const month = cur.getMonth();
+      monthLabel.textContent = monthNames[month]+' '+year;
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month+1, 0);
+      const startWeekday = firstDay.getDay();
+      const totalDays = lastDay.getDate();
+
+      // previous month's tail
+      const prevLast = new Date(year, month, 0).getDate();
+      const totalCells = Math.ceil((startWeekday + totalDays)/7)*7;
+      for(let i=0;i<totalCells;i++){
+        const cell = document.createElement('div');
+        const dayIndex = i - startWeekday + 1;
+        cell.className = 'day';
+        if(i < startWeekday){
+          // days from prev month
+          const d = prevLast - (startWeekday - 1 - i);
+          cell.classList.add('other');
+          cell.innerHTML = `<div class="date">${d}</div>`;
+        } else if(dayIndex > totalDays){
+          // next month days
+          cell.classList.add('other');
+          cell.innerHTML = `<div class="date">${dayIndex - totalDays}</div>`;
+        } else {
+          const d = dayIndex;
+          const dateObj = new Date(year,month,d);
+          const dateStr = ymd(dateObj);
+          const notes = loadNotesFor(dateStr);
+
+          const isToday = ymd(new Date()) === dateStr;
+          if(isToday) cell.classList.add('today');
+
+          const notesHTML = notes.length ? `<div style="margin-top:auto"><small>${notes.length} บันทึก</small></div>` : '';
+          cell.innerHTML = `<div class="date">${d}</div>${notesHTML}`;
+
+          cell.onclick = ()=>{
+            selectedDate = dateStr;
+            selectedDateLabel.textContent = formatDisplayDate(dateObj);
+            renderNotes(dateStr);
+            openModal({date:dateStr});
+          }
+        }
+        calendarEl.appendChild(cell);
+      }
+    }
+
+    function renderNotes(dateStr){
+      notesContainer.innerHTML = '';
+      const notes = loadNotesFor(dateStr);
+      if(!notes || notes.length===0){
+        emptyNotes.style.display='block';
+        return;
+      }
+      emptyNotes.style.display='none';
+      notes.forEach((n,i)=>{
+        const el = document.createElement('div'); el.className='note-item';
+        const left = document.createElement('div');
+        const title = document.createElement('div'); title.style.fontWeight='600'; title.textContent = n.title || '(ไม่มีหัวข้อ)';
+        const body = document.createElement('small'); body.textContent = n.body || '';
+        left.appendChild(title); left.appendChild(body);
+        const right = document.createElement('div');
+        const editBtn = document.createElement('button'); editBtn.textContent='แก้ไข'; editBtn.onclick = ()=> openModal({date:dateStr,note:n,index:i});
+        const delBtn = document.createElement('button'); delBtn.textContent='ลบ'; delBtn.onclick = ()=>{ if(confirm('ต้องการลบบันทึกนี้?')){ let arr=loadNotesFor(dateStr); arr.splice(i,1); saveNotesFor(dateStr,arr); renderNotes(dateStr); renderCalendar(); }};
+        right.appendChild(editBtn); right.appendChild(delBtn);
+        el.appendChild(left); el.appendChild(right);
+        notesContainer.appendChild(el);
+      })
+    }
+
+    function formatDisplayDate(d){
+      return d.getDate()+' '+monthNames[d.getMonth()]+' '+d.getFullYear();
+    }
+
+    prevBtn.onclick = ()=>{ cur = new Date(cur.getFullYear(), cur.getMonth()-1, 1); renderCalendar(); }
+    nextBtn.onclick = ()=>{ cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); renderCalendar(); }
+    gotoToday.onclick = ()=>{ cur = new Date(); renderCalendar(); }
+
+    // init weekdays header then calendar
+    renderCalendar();
+
+    // When user clicks a day, modal opens — also allow double-click on notes container to add note to selected date
+    notesContainer.addEventListener('dblclick', ()=>{
+      if(selectedDate) openModal({date:selectedDate});
+    });
+
+    // On load, set selectedDate to today and show notes if any
+    const todayStr = ymd(new Date());
+    selectedDate = todayStr;
+    selectedDateLabel.textContent = formatDisplayDate(new Date());
+    renderNotes(selectedDate);
+
+    // Small helper: clicking outside modal closes it (already cancel button provided)
+    document.addEventListener('click', (e)=>{
+      // noop; modal handles its own buttons
+    });
+  </script>
+</body>
+</html>
