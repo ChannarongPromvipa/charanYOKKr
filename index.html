@@ -35,12 +35,14 @@
 
 							<!-- Banner -->
 								<section id="banner">
-									<div class="content">
-										<header>
-											<h1>สวัสดี ผมชื่อเขตนะครับ</h1>
-											<p>เว็บนี้สร้างขึ้นเพื่อเป็น พื้นที่เว็บไซต์ของตัวผมเอง</p>
-										</header>
-										<p id="but1">เพื่อการเรียนรู้และความเข้าใจของ Website</p>
+								<div class="content">
+								  <header>
+								    <h1>สวัสดี ผมชื่อเขตนะครับ</h1>
+								    <p>เว็บนี้สร้างขึ้นเพื่อเป็น พื้นที่เว็บไซต์ของตัวผมเอง</p>
+								  </header>
+								  <div id="announceArea" style="margin:10px 0; padding:10px; background:yellow; font-weight:bold; display:none;"></div>
+								  <p id="but1">เพื่อการเรียนรู้และความเข้าใจของ Website</p>
+									
 <ul class="actions">
 <button type="button" onclick="document.getElementById('but1').innerHTML = 'คลิกทำไม'">คลิก</button>
 <button onclick="document.getElementById('myImage').src='images/mom1.png'">คลิก</button>
@@ -141,6 +143,43 @@
 			</section>
 
 <script>
+	
+	  // ฟังก์ชันเช็ควันเกิด / วันสำคัญ
+  function checkBirthdayToday() {
+    let today = new Date();
+    let tDay = today.getDate();
+    let tMonth = today.getMonth() + 1; // เดือน JS เริ่มที่ 0
+
+    let table = document.getElementById("birthdayTable");
+    let announce = document.getElementById("announceArea");
+    let messages = [];
+
+    for (let i = 1; i < table.rows.length; i++) {
+      let name = table.rows[i].cells[0].innerText.trim();
+      let dateStr = table.rows[i].cells[1].innerText.trim();
+
+      let parts = dateStr.split("/");
+      if (parts.length !== 3) continue;
+
+      let day = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10);
+
+      // ถ้าวันและเดือนตรงกัน
+      if (day === tDay && month === tMonth) {
+        messages.push("วันนี้เป็นวันพิเศษของ 🎉 " + name);
+      }
+    }
+
+    if (messages.length > 0) {
+      announce.innerHTML = messages.join("<br>");
+      announce.style.display = "block";
+    }
+  }
+
+  // เรียกใช้งาน
+  checkBirthdayToday();
+
+	
   let sortConfig = { key: null, asc: true };
 
   function getItems() {
@@ -319,6 +358,7 @@
 	</body>
 
 </html>
+
 
 
 
