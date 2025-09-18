@@ -165,13 +165,30 @@
 		      <tr><td>ฉีดยาแมว</td><td>5000</td></tr>
 			  <tr><td>ซ่อมมอไซ</td><td>2000</td></tr>
 		    </tbody>
-			  </table>
-				
+			<tfoot>
+         	<tr>
+            <td><b>รวมทั้งหมด</b></td>
+            <td id="totalPrice"></td>
+            </tr>
+      	    </tfoot>
+			</table>
 			</div>
 			</article>
 </section>
 							
 <script>
+	function calcTotal() {
+    let total = 0;
+    const rows = document.querySelectorAll("#Asset tbody tr");
+    rows.forEach(row => {
+      const price = parseFloat(row.cells[1].innerText);
+      if (!isNaN(price)) {
+        total += price;
+      }
+    });
+    document.getElementById("totalPrice").innerText = total.toLocaleString();
+  }
+  calcTotal();
 	
 	  // ฟังก์ชันเช็ควันเกิด / วันสำคัญ
   function checkBirthdayToday() {
@@ -388,6 +405,7 @@
 	</body>
 
 </html>
+
 
 
 
