@@ -323,6 +323,51 @@
     let dateStr = table.rows[i].cells[1].innerText.trim();
     table.rows[i].cells[2].innerText = calculateAge(dateStr);
   }
+
+	// กำหนดชื่อเพจที่มี
+  const pages = {
+    "index": "index.html",
+    "หน้าแรก": "index.html",
+
+    "calendar": "calendar.html",
+    "ปฏิทิน": "calendar.html",
+
+    "dividend": "dividend.html",
+    "คำนวณปันผล": "dividend.html",
+
+    "loan": "loan.html",
+    "คำนวณดอกเบี้ย": "loan.html",
+
+    "calculator": "calculator.html",
+    "เครื่องคิดเลข": "calculator.html",
+
+    "costsaving": "CostSaving.html",
+    "คำนวณค่าใช้จ่าย": "CostSaving.html",
+
+    "nasdaq": "Nasdaq.html",
+    "หุ้นที่ถือ": "Nasdaq.html",
+
+    "dime": "DIME.html",
+    "performent": "DIME.html",
+
+    "generic": "generic.html",
+    "เว็บแมว": "generic.html"
+  };
+
+	function goSearch() {
+    const input = document.getElementById("query").value.trim().toLowerCase();
+
+    // หา key ที่ตรงกับคำค้นหา
+    for (let key in pages) {
+      if (key.toLowerCase() === input) {
+        window.location.href = pages[key]; // เปิดหน้าใหม่
+        return false; // ป้องกัน submit ฟอร์ม
+      }
+    }
+
+    alert("ไม่พบหน้าที่ค้นหา: " + input);
+    return false;
+  }
 </script>
 
 															
@@ -336,9 +381,9 @@
 
 <!-- Search -->
 <section id="search" class="alt">
-	<form method="get" action="CostSaving.html">
-	  <input type="text" name="query" id="query" placeholder="Search" />
-	</form>
+  <form onsubmit="return goSearch()">
+    <input type="text" id="query" placeholder="Search page..." />
+  </form>
 </section>
 
 <!-- Menu -->
@@ -417,6 +462,7 @@
 	</body>
 
 </html>
+
 
 
 
