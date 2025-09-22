@@ -177,6 +177,18 @@
 </section>
 							
 <script>
+	// อ่านค่าจาก query string
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("query");
+
+    // เอาไปแสดงผล
+    const result = document.getElementById("result");
+    if (query) {
+      result.textContent = "คุณค้นหาคำว่า: " + query;
+    } else {
+      result.textContent = "ยังไม่ได้ใส่คำค้นหา";
+    }
+	
 	function calcTotal() {
     let total = 0;
     const rows = document.querySelectorAll("#Asset tbody tr");
@@ -324,9 +336,9 @@
 
 <!-- Search -->
 <section id="search" class="alt">
-  <form method="get" action="CostSaving.html">
-    <input type="text" name="query" id="query" placeholder="Search" />
-  </form>
+	<form method="get" action="CostSaving.html">
+	  <input type="text" name="query" id="query" placeholder="Search" />
+	</form>
 </section>
 
 <!-- Menu -->
@@ -405,6 +417,7 @@
 	</body>
 
 </html>
+
 
 
 
