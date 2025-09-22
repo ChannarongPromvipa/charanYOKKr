@@ -312,50 +312,50 @@
     table.rows[i].cells[2].innerText = calculateAge(dateStr);
   }
 
-	// กำหนดชื่อเพจที่มี
+	  // กำหนดชื่อเพจและไฟล์
   const pages = {
-    "index": "index.html",
     "หน้าแรก": "index.html",
-
-    "calendar": "calendar.html",
     "ปฏิทิน": "calendar.html",
-
-    "dividend": "dividend.html",
     "คำนวณปันผล": "dividend.html",
-
-    "loan": "loan.html",
     "คำนวณดอกเบี้ย": "loan.html",
-
-    "calculator": "calculator.html",
     "เครื่องคิดเลข": "calculator.html",
-
-    "costsaving": "CostSaving.html",
     "คำนวณค่าใช้จ่าย": "CostSaving.html",
-
-    "nasdaq": "Nasdaq.html",
     "หุ้นที่ถือ": "Nasdaq.html",
-
-    "dime": "DIME.html",
     "performent": "DIME.html",
-
-    "generic": "generic.html",
     "เว็บแมว": "generic.html"
   };
 
-	function goSearch() {
-    const input = document.getElementById("query").value.trim().toLowerCase();
+  function showSuggestions(value) {
+    const suggestions = document.getElementById("suggestions");
+    suggestions.innerHTML = "";
 
-    // หา key ที่ตรงกับคำค้นหา
+    if (!value) return;
+
+    value = value.toLowerCase();
     for (let key in pages) {
-      if (key.toLowerCase() === input) {
-        window.location.href = pages[key]; // เปิดหน้าใหม่
-        return false; // ป้องกัน submit ฟอร์ม
+      if (key.toLowerCase().includes(value)) {
+        const li = document.createElement("li");
+        li.textContent = key;
+        li.onclick = () => {
+          document.getElementById("query").value = key;
+          suggestions.innerHTML = "";
+          goSearch();
+        };
+        suggestions.appendChild(li);
       }
     }
-
-    alert("ไม่พบหน้าที่ค้นหา: " + input);
-    return false;
   }
+
+  function goSearch() {
+    const input = document.getElementById("query").value.trim();
+    if (pages[input]) {
+      window.location.href = pages[input];
+    } else {
+      alert("ไม่พบหน้าที่ค้นหา: " + input);
+    }
+    return false; // ป้องกัน submit reload
+  }
+	
 </script>
 
 															
@@ -370,7 +370,8 @@
 <!-- Search -->
 <section id="search" class="alt">
   <form onsubmit="return goSearch()">
-    <input type="text" id="query" placeholder="Search page..." />
+    <input type="text" id="query" placeholder="Search page..." autocomplete="off" oninput="showSuggestions(this.value)" />
+    <ul id="suggestions"></ul>
   </form>
 </section>
 
@@ -450,6 +451,7 @@
 	</body>
 
 </html>
+
 
 
 
