@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Route Planner — แผนที่จัดรูท (Leaflet)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <style>
+    html,body,#map { height: 100%; margin: 0; padding: 0; }
+    .sidebar { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.97); padding: 12px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); width: 320px; max-height: 90vh; overflow: auto; }
+    .sidebar h3 { margin: 0 0 8px 0; font-size: 16px; }
+    .places-list { margin-top: 8px; }
+    .place-item { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:6px 4px; border-bottom:1px solid #eee; }
+    .small { font-size: 13px; color:#555 }
+    button { cursor:pointer; }
+    .search-results { background:#fff; border:1px solid #ddd; max-height:150px; overflow:auto; margin-top:4px; }
+    .search-results div { padding:6px; border-bottom:1px solid #f0f0f0; cursor:pointer; }
+    .search-results div:hover { background:#f6f6f6 }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="sidebar">
+    <h3>สร้างเส้นทาง (อย่างน้อย 3 จุด)</h3>
+    <div class="small">ค้นหาชื่อสถานที่ แล้วกดผลลัพธ์เพื่อเพิ่มเป็นจุดส่ง</div>
+    <div style="margin-top:8px">
+      <input id="q" placeholder="พิมพ์ชื่อสถานที่ เช่น สยามพารากอน" style="width:100%; padding:8px; box-sizing:border-box;" />
+      <div id="results" class="search-results" style="display:none"></div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="use-map-point">เพิ่มจากตำแหน่งบนแผนที่</button>
+        <button id="clear-all">ล้างทั้งหมด</button>
+      </div>
+    </div>
+
+    <div class="places-list" id="places">
+      <!-- รายการจุดเพิ่มที่นี่ -->
+    </div>
+
+    <div style="margin-top:8px;">
+      <strong>สรุประยะทาง</strong>
+      <div id="summary" class="small">ยังไม่มีเส้นทาง</div>
+    </div>
+
+    <div style="margin-top:8px; font-size:12px; color:#666">หมายเหตุ: ใช้ OpenStreetMap + OSRM public. ไม่ต้องใช้ API key แต่หากใช้งานหนักควรตั้งค่า router ของตัวเอง</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script>
+    // initialize map
+    const map = L.map('map').setView([13.736717,100.523186], 11); // กรุงเทพเป็นเริ่มต้น
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // routing control (OSRM public service)
+    const routingControl = L.Routing.control({
+      waypoints: [],
+      routeWhileDragging: false,
+      showAlternatives: false,
+      fitSelectedRoutes: true,
+      addWaypoints: false, // we add via our UI
+      router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' })
+    }).addTo(map);
+
+    let places = []; // {name, lat, lon, marker}
+
+    // helpers
+    function haversine(a,b){
+      const toRad = x=> x*Math.PI/180;
+      const R = 6371000; // metres
+      const dLat = toRad(b.lat-a.lat);
+      const dLon = toRad(b.lon-a.lon);
+      const lat1 = toRad(a.lat);
+      const lat2 = toRad(b.lat);
+      const sinDlat = Math.sin(dLat/2);
+      const sinDlon = Math.sin(dLon/2);
+      const aa = sinDlat*sinDlat + Math.cos(lat1)*Math.cos(lat2)*sinDlon*sinDlon;
+      const c = 2*Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+      return R*c; // meters
+    }
+
+    function renderPlaces(){
+      const container = document.getElementById('places');
+      container.innerHTML = '';
+      places.forEach((p, i)=>{
+        const div = document.createElement('div');
+        div.className = 'place-item';
+        div.innerHTML = `<div style="flex:1"><strong>${i+1}. ${escapeHtml(p.name)}</strong><div class="small">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</div></div>`;
+        const right = document.createElement('div');
+        right.style.display = 'flex'; right.style.flexDirection='column'; right.style.gap='6px'; right.style.alignItems='flex-end';
+        const up = document.createElement('button'); up.textContent='▲'; up.disabled = (i===0);
+        up.title='เลื่อนขึ้น'; up.onclick = ()=>{ if(i>0){ places.splice(i-1,0,places.splice(i,1)[0]); updateRoute(); }};
+        const down = document.createElement('button'); down.textContent='▼'; down.disabled = (i===places.length-1);
+        down.title='เลื่อนลง'; down.onclick = ()=>{ if(i<places.length-1){ places.splice(i+1,0,places.splice(i,1)[0]); updateRoute(); }};
+        const del = document.createElement('button'); del.textContent='ลบ'; del.onclick = ()=>{ map.removeLayer(p.marker); places.splice(i,1); updateRoute(); };
+        right.appendChild(up); right.appendChild(down); right.appendChild(del);
+        div.appendChild(right);
+        container.appendChild(div);
+      });
+    }
+
+    function updateRoute(){
+      const waypoints = places.map(p=> L.latLng(p.lat,p.lon));
+      routingControl.setWaypoints(waypoints);
+      renderPlaces();
+      document.getElementById('summary').textContent = 'กำลังคำนวณ...';
+    }
+
+    routingControl.on('routesfound', function(e){
+      const routes = e.routes;
+      if(!routes || routes.length===0) return;
+      const r = routes[0];
+      // total distance from router (meters)
+      const total = r.summary && r.summary.totalDistance ? r.summary.totalDistance : r.summary.total_distance || 0;
+      // OSRM via LRM sometimes returns distance in meters under r.summary.totalDistance
+      const totalKm = (total/1000).toFixed(2);
+
+      // compute segment approximate distances by haversine between waypoints
+      const segs = [];
+      let approxSum = 0;
+      for(let i=0;i<places.length-1;i++){
+        const d = haversine(places[i], places[i+1]); approxSum+=d; segs.push(d);
+      }
+
+      // render summary and segment list
+      let html = `ระยะทางรวม (ผลจาก OSRM): <strong>${totalKm} km</strong>\nApprox (haversine): ${(approxSum/1000).toFixed(2)} km`;
+      html += '<ul style="padding-left:16px;margin:6px 0;">';
+      for(let i=0;i<places.length;i++){
+        html += `<li><strong>${i+1}. ${escapeHtml(places[i].name)}</strong>`;
+        if(i<segs.length) html += ` — ${(segs[i]/1000).toFixed(3)} km`;
+        html += '</li>';
+      }
+      html += '</ul>';
+      document.getElementById('summary').innerHTML = html;
+    });
+
+    routingControl.on('routingerror', function(){
+      document.getElementById('summary').textContent = 'เกิดข้อผิดพลาดในการคำนวณเส้นทาง';
+    });
+
+    // search using Nominatim (OpenStreetMap)
+    const q = document.getElementById('q');
+    const resultsBox = document.getElementById('results');
+    let searchTimeout;
+    q.addEventListener('input', ()=>{
+      clearTimeout(searchTimeout);
+      const txt = q.value.trim();
+      if(txt.length<2){ resultsBox.style.display='none'; resultsBox.innerHTML=''; return; }
+      searchTimeout = setTimeout(()=> doSearch(txt), 350);
+    });
+
+    function doSearch(text){
+      resultsBox.innerHTML = 'กำลังค้นหา...'; resultsBox.style.display = 'block';
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=6&addressdetails=1&accept-language=th`;
+      fetch(url, {headers:{'User-Agent':'route-planner-example'}})
+        .then(r=>r.json())
+        .then(data=>{
+          if(!Array.isArray(data) || data.length===0){ resultsBox.innerHTML='<div style="padding:8px">ไม่พบผลลัพธ์</div>'; return; }
+          resultsBox.innerHTML = '';
+          data.forEach(item=>{
+            const div = document.createElement('div');
+            div.textContent = item.display_name;
+            div.onclick = ()=>{ addPlace(item.display_name, parseFloat(item.lat), parseFloat(item.lon)); resultsBox.style.display='none'; q.value=''; };
+            resultsBox.appendChild(div);
+          });
+        })
+        .catch(err=>{ resultsBox.innerHTML = '<div style="padding:8px">เกิดข้อผิดพลาดในการค้นหา</div>'; console.error(err); });
+    }
+
+    function addPlace(name, lat, lon){
+      const marker = L.marker([lat,lon]).addTo(map).bindPopup(`<strong>${escapeHtml(name)}</strong>`);
+      places.push({name, lat, lon, marker});
+      updateRoute();
+      marker.openPopup();
+    }
+
+    // add by clicking on map
+    let useMapPoint = false;
+    document.getElementById('use-map-point').addEventListener('click', ()=>{ useMapPoint = !useMapPoint; document.getElementById('use-map-point').textContent = useMapPoint? 'คลิกบนแผนที่เพื่อเพิ่ม (ยกเลิก)':'เพิ่มจากตำแหน่งบนแผนที่'; });
+    map.on('click', function(ev){ if(!useMapPoint) return; const lat = ev.latlng.lat; const lon = ev.latlng.lng; const name = `ตำแหน่ง ${lat.toFixed(5)},${lon.toFixed(5)}`; addPlace(name, lat, lon); useMapPoint=false; document.getElementById('use-map-point').textContent='เพิ่มจากตำแหน่งบนแผนที่'; });
+
+    document.getElementById('clear-all').addEventListener('click', ()=>{
+      places.forEach(p=>map.removeLayer(p.marker)); places = []; updateRoute(); document.getElementById('summary').textContent='ยังไม่มีเส้นทาง';
+    });
+
+    // escape html helper
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // add example points to show usage (optional)
+    // addPlace('สยามพารากอน',13.7461,100.5348);
+    // addPlace('CentralWorld',13.7460,100.5398);
+    // addPlace('สนามบินดอนเมือง',13.9125,100.6066);
+
+  </script>
+</body>
+</html>
